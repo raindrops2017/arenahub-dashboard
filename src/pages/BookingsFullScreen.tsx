@@ -10,6 +10,9 @@ import { venueApi } from "../services/api/venueApi";
 import { socketService } from "../services/api/socketService";
 import { Modal } from "../components/ui/modal";
 
+import { customerApi } from "../services/api/customerApi";
+import { CustomerUser } from "../types";
+
 // ─── Curated Color & Style Tokens ─────────────────────────
 const fmt = (n: number) => `${n.toLocaleString()} EGP`;
 const pad = (h: number) => {
@@ -38,6 +41,7 @@ function toDateStr(d: Date) {
 export default function BookingsFullScreen() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
+  const [customers, setCustomers] = useState<CustomerUser[]>([]);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [selectedDate, setSelectedDate] = useState(toDateStr(new Date()));
   const [search, setSearch] = useState("");
@@ -64,13 +68,21 @@ export default function BookingsFullScreen() {
   const [newBookingPaymentMethod, setNewBookingPaymentMethod] = useState<PaymentMethod>("cash");
   const [newBookingCoupon, setNewBookingCoupon] = useState("");
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
+  const [customerSelectionType, setCustomerSelectionType] = useState<"existing" | "new">("existing");
+  const [newBookingCustomerId, setNewBookingCustomerId] = useState("");
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
 
   const reloadData = useCallback(async () => {
     setLoading(true);
     setErrorMsg("");
     try {
-      const fetchedVenues = await venueApi.getAllVenues();
+      const [fetchedVenues, fetchedCustomers] = await Promise.all([
+        venueApi.getAllVenues(),
+        customerApi.getAllCustomers(),
+      ]);
       setVenues(fetchedVenues);
+      setCustomers(fetchedCustomers);
 
       const activeVList = fetchedVenues.filter((v) => v.isActive !== false);
       const allBookingPromises = activeVList.map((v) =>
@@ -212,6 +224,16 @@ export default function BookingsFullScreen() {
     }
     setIsSubmittingNew(true);
     try {
+      let finalCustomerId = customerSelectionType === "existing" ? newBookingCustomerId : undefined;
+      
+      if (customerSelectionType === "new") {
+        if (!newCustomerName || !newCustomerPhone) {
+          throw new Error("Please provide customer name and phone.");
+        }
+        const newCustomer = await customerApi.createCustomer({ userName: newCustomerName, phone: newCustomerPhone });
+        finalCustomerId = newCustomer._id || newCustomer.id;
+      }
+
       await bookingApi.createBooking({
         venueId: newBookingVenueId,
         date: newBookingDate,
@@ -219,8 +241,11 @@ export default function BookingsFullScreen() {
         endTime: newBookingEndHour,
         couponCode: newBookingCoupon.trim() || undefined,
         paymentMethod: (newBookingPaymentMethod as string).toLowerCase(),
+        customerId: finalCustomerId,
       });
       setShowNewBooking(false);
+      setNewCustomerName("");
+      setNewCustomerPhone("");
       await reloadData();
     } catch (err: any) {
       alert(err.message || "Failed to create booking.");
@@ -257,22 +282,22 @@ export default function BookingsFullScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white">
       {/* ─── Top Glassmorphism Navigation Bar ─── */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-slate-900/90 border-b border-slate-800 shadow-xl">
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-white/80 dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700/80 shadow-sm dark:shadow-xl">
         <div className="flex items-center justify-between px-6 py-3.5 max-w-[1920px] mx-auto">
           {/* Left Brand & Back */}
           <div className="flex items-center gap-4">
             <Link
               to="/"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 transition-all text-xs font-semibold group"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/80 hover:bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-white border border-gray-300 dark:border-gray-600/60 transition-all text-xs font-semibold group"
             >
-              <svg className="w-4 h-4 transform group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 transform group-hover:-trangray-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
               Return to Dashboard
             </Link>
-            <div className="h-5 w-px bg-slate-800" />
+            <div className="h-5 w-px bg-gray-100 dark:bg-gray-800" />
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
                 <span className="text-sm font-black">⚽</span>
@@ -281,7 +306,7 @@ export default function BookingsFullScreen() {
                 <h1 className="text-sm font-bold text-white flex items-center gap-2">
                   Live Slot Booking Grid
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 animate-pulse">
-                    ● WebSocket Synced
+                    ● Live Synced
                   </span>
                   {loading && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse">
@@ -289,7 +314,7 @@ export default function BookingsFullScreen() {
                     </span>
                   )}
                 </h1>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
                   Real-time mobile locks & gate QR verification
                 </p>
               </div>
@@ -297,10 +322,10 @@ export default function BookingsFullScreen() {
           </div>
 
           {/* Center – Interactive Date Picker & Controller */}
-          <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
+          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md/80 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700/80 shadow-inner">
             <button
               onClick={() => shiftDate(-1)}
-              className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition"
+              className="p-2 rounded-xl hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-white transition"
               title="Previous Day"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
@@ -315,7 +340,7 @@ export default function BookingsFullScreen() {
 
             <button
               onClick={() => shiftDate(1)}
-              className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition"
+              className="p-2 rounded-xl hover:bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-white transition"
               title="Next Day"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
@@ -336,9 +361,9 @@ export default function BookingsFullScreen() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search booking/customer..."
-                className="w-52 pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-950 border border-slate-800 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                className="w-52 pl-9 pr-3 py-1.5 text-xs rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:text-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
               />
-              <svg className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -356,7 +381,7 @@ export default function BookingsFullScreen() {
               <span>🎟️</span> Gate Check-In
             </button>
 
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <div className="flex bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md p-1 rounded-xl border border-gray-200 dark:border-gray-700/80">
               {(["grid", "list"] as const).map((v) => (
                 <button
                   key={v}
@@ -364,7 +389,7 @@ export default function BookingsFullScreen() {
                   className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     view === v
                       ? "bg-blue-600 text-white shadow-md"
-                      : "text-slate-400 hover:text-white"
+                      : "text-gray-500 dark:text-gray-400 hover:text-white"
                   }`}
                 >
                   {v === "grid" ? "Grid" : "List"}
@@ -399,20 +424,20 @@ export default function BookingsFullScreen() {
 
         {view === "grid" ? (
           /* ─── TIME SLOT GRID VIEW ─── */
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 backdrop-blur-sm overflow-hidden shadow-2xl">
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/80 bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md/60 backdrop-blur-sm overflow-hidden shadow-2xl">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse min-w-[900px]">
                 <thead>
-                  <tr className="bg-slate-900/90 border-b border-slate-800">
-                    <th className="sticky left-0 z-20 bg-slate-900 px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-400 border-r border-slate-800 w-28">
+                  <tr className="bg-white/90 dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700/80">
+                    <th className="sticky left-0 z-20 bg-white dark:bg-gray-800/90 px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700/80 w-28">
                       Slot Hour
                     </th>
                     {activeVenues.map((v) => {
                       const vId = v._id || v.id || "";
                       const sTypes = v.sportsType || v.sportsTypes || [];
                       return (
-                        <th key={vId} className="px-4 py-4 text-center border-r border-slate-800/60 min-w-[180px] last:border-r-0">
-                          <div className="text-sm font-bold text-slate-200">{v.venueName || v.name}</div>
+                        <th key={vId} className="px-4 py-4 text-center border-r border-gray-200 dark:border-gray-700/80/60 min-w-[180px] last:border-r-0">
+                          <div className="text-sm font-bold text-gray-800 dark:text-gray-200">{v.venueName || v.name}</div>
                           <div className="flex gap-1 justify-center mt-1.5 flex-wrap">
                             {sTypes.map((s) => (
                               <span key={s} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -425,10 +450,10 @@ export default function BookingsFullScreen() {
                     })}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-gray-800/60">
                   {hours.map((h) => (
-                    <tr key={h} className="group hover:bg-slate-900/30 transition-colors">
-                      <td className="sticky left-0 z-10 bg-slate-950 px-4 py-3 text-xs font-bold text-slate-400 border-r border-slate-800 whitespace-nowrap">
+                    <tr key={h} className="group hover:bg-white dark:bg-gray-800/90/30 transition-colors">
+                      <td className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700/80 whitespace-nowrap">
                         {pad(h)}
                       </td>
                       {activeVenues.map((v) => {
@@ -441,33 +466,33 @@ export default function BookingsFullScreen() {
                             <td
                               key={vId}
                               onClick={() => isCancelled ? undefined : setEditBooking(b)}
-                              className={`p-2.5 border-r border-slate-800/60 last:border-r-0 cursor-pointer transition-all ${
+                              className={`p-2.5 border-r border-gray-200 dark:border-gray-700/80/60 last:border-r-0 cursor-pointer transition-all ${
                                 isCancelled
-                                  ? "bg-slate-900/20 opacity-50"
+                                  ? "bg-white dark:bg-gray-800/90/20 opacity-50"
                                   : isPending
                                   ? "bg-amber-950/30 hover:bg-amber-950/50"
                                   : "bg-blue-950/40 hover:bg-blue-900/50"
                               }`}
                             >
-                              <div className="p-3 rounded-xl border border-slate-700/60 bg-slate-900/90 shadow-md flex flex-col justify-between h-full">
+                              <div className="p-3 rounded-xl border border-gray-300 dark:border-gray-600/60 bg-white/90 dark:bg-gray-800/90 shadow-md flex flex-col justify-between h-full">
                                 <div>
                                   <div className="flex items-center justify-between gap-1 mb-1">
                                     <span className="font-bold text-xs text-white line-clamp-1">
                                       {b.customerName || "Customer"}
                                     </span>
-                                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${statusBadgeStyle[b.status] || "bg-slate-800 text-slate-300"}`}>
+                                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${statusBadgeStyle[b.status] || "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"}`}>
                                       {b.status}
                                     </span>
                                   </div>
-                                  <div className="text-[11px] text-slate-400 font-mono">
+                                  <div className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">
                                     {b.bookingCode ? `#${b.bookingCode}` : ""}
                                   </div>
                                 </div>
-                                <div className="mt-2 flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-800">
+                                <div className="mt-2 flex items-center justify-between text-[11px] pt-1.5 border-t border-gray-200 dark:border-gray-700/80">
                                   <span className="font-bold text-emerald-400">
                                     {fmt(b.price || b.totalPrice || 0)}
                                   </span>
-                                  <span className="text-slate-400 font-mono">
+                                  <span className="text-gray-500 dark:text-gray-400 font-mono">
                                     {b.paymentStatus}
                                   </span>
                                 </div>
@@ -486,7 +511,7 @@ export default function BookingsFullScreen() {
                               setNewBookingEndHour(h + 1);
                               setShowNewBooking(true);
                             }}
-                            className="p-2 border-r border-slate-800/40 last:border-r-0 hover:bg-emerald-950/10 cursor-pointer transition-colors group/slot text-center"
+                            className="p-2 border-r border-gray-200 dark:border-gray-700/80/40 last:border-r-0 hover:bg-emerald-950/10 cursor-pointer transition-colors group/slot text-center"
                           >
                             <span className="inline-block opacity-0 group-hover/slot:opacity-100 text-xs font-bold text-emerald-400 transition-opacity">
                               + Book Slot
@@ -502,9 +527,9 @@ export default function BookingsFullScreen() {
           </div>
         ) : (
           /* ─── LIST VIEW ─── */
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 overflow-hidden shadow-2xl">
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/80 bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md/60 overflow-hidden shadow-2xl">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+              <thead className="bg-white dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700/80 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Booking Code</th>
                   <th className="px-6 py-4">Customer</th>
@@ -515,34 +540,34 @@ export default function BookingsFullScreen() {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-gray-800/60">
                 {filteredBookings.map((b) => (
-                  <tr key={b._id || b.id} className="hover:bg-slate-900/40 transition">
+                  <tr key={b._id || b.id} className="hover:bg-white dark:bg-gray-800/90/40 transition">
                     <td className="px-6 py-4 font-mono font-bold text-blue-400">
                       {b.bookingCode || b._id}
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-bold text-white">{b.customerName || "Customer"}</div>
-                      <div className="text-slate-400 font-mono text-[11px]">{b.customerPhone}</div>
+                      <div className="text-gray-500 dark:text-gray-400 font-mono text-[11px]">{b.customerPhone}</div>
                     </td>
-                    <td className="px-6 py-4 text-slate-200">
+                    <td className="px-6 py-4 text-gray-800 dark:text-gray-200">
                       {b.venueName || "Venue"}
                     </td>
-                    <td className="px-6 py-4 text-slate-300 font-mono">
+                    <td className="px-6 py-4 text-gray-700 dark:text-gray-300 font-mono">
                       {b.startTime} - {b.endTime}
                     </td>
                     <td className="px-6 py-4 font-bold text-emerald-400">
                       {fmt(b.price || b.totalPrice || 0)}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${statusBadgeStyle[b.status] || "bg-slate-800 text-slate-300"}`}>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${statusBadgeStyle[b.status] || "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"}`}>
                         {b.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => setEditBooking(b)}
-                        className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition"
+                        className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold transition"
                       >
                         Manage
                       </button>
@@ -559,20 +584,20 @@ export default function BookingsFullScreen() {
       <Modal
         isOpen={showVerifyModal}
         onClose={() => setShowVerifyModal(false)}
-        className="max-w-md p-6 bg-slate-900 border border-slate-800 text-white"
+        className="max-w-md p-6 bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700/80 text-white"
       >
         <div>
           <div className="flex items-center gap-2 mb-4">
             <span className="text-2xl">🎟️</span>
             <div>
               <h3 className="text-lg font-bold text-white">Gate Ticket Verification</h3>
-              <p className="text-xs text-slate-400">Scan QR or enter 6-character booking code</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Scan QR or enter 6-character booking code</p>
             </div>
           </div>
 
           <form onSubmit={handleVerifyCodeSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase">
                 Booking / QR Code
               </label>
               <input
@@ -581,7 +606,7 @@ export default function BookingsFullScreen() {
                 value={verifyCode}
                 onChange={(e) => setVerifyCode(e.target.value.toUpperCase())}
                 placeholder="e.g. BK7890 or BK-..."
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono font-bold text-sm text-white uppercase placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-300 dark:border-gray-600 font-mono font-bold text-sm text-white uppercase placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:border-indigo-500"
               />
             </div>
             <button
@@ -589,7 +614,7 @@ export default function BookingsFullScreen() {
               disabled={verifyLoading}
               className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition disabled:opacity-50"
             >
-              {verifyLoading ? "Verifying with Server..." : "Verify Ticket Code"}
+              {verifyLoading ? "Verifying Ticket..." : "Verify Ticket Code"}
             </button>
           </form>
 
@@ -600,18 +625,18 @@ export default function BookingsFullScreen() {
           )}
 
           {verifyResult && (
-            <div className="mt-5 p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+            <div className="mt-5 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-400">STATUS:</span>
+                <span className="text-xs font-bold text-gray-500 dark:text-gray-400">STATUS:</span>
                 <span className={`text-xs font-bold px-2 py-0.5 rounded ${verifyResult.valid ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}>
                   {verifyResult.valid ? "✅ VALID TICKET" : "❌ INVALID / CANCELLED"}
                 </span>
               </div>
-              <div className="text-xs space-y-1 text-slate-300">
-                <div><strong className="text-slate-400">Customer:</strong> {verifyResult.booking.customerName} ({verifyResult.booking.customerPhone})</div>
-                <div><strong className="text-slate-400">Venue:</strong> {verifyResult.booking.venueName}</div>
-                <div><strong className="text-slate-400">Slot Time:</strong> {verifyResult.booking.startTime} - {verifyResult.booking.endTime} ({verifyResult.booking.date})</div>
-                <div><strong className="text-slate-400">Payment:</strong> {verifyResult.booking.paymentStatus} ({fmt(verifyResult.booking.price || 0)})</div>
+              <div className="text-xs space-y-1 text-gray-700 dark:text-gray-300">
+                <div><strong className="text-gray-500 dark:text-gray-400">Customer:</strong> {verifyResult.booking.customerName} ({verifyResult.booking.customerPhone})</div>
+                <div><strong className="text-gray-500 dark:text-gray-400">Venue:</strong> {verifyResult.booking.venueName}</div>
+                <div><strong className="text-gray-500 dark:text-gray-400">Slot Time:</strong> {verifyResult.booking.startTime} - {verifyResult.booking.endTime} ({verifyResult.booking.date})</div>
+                <div><strong className="text-gray-500 dark:text-gray-400">Payment:</strong> {verifyResult.booking.paymentStatus} ({fmt(verifyResult.booking.price || 0)})</div>
               </div>
               {verifyResult.valid && (
                 <button
@@ -634,19 +659,19 @@ export default function BookingsFullScreen() {
       <Modal
         isOpen={showNewBooking}
         onClose={() => setShowNewBooking(false)}
-        className="max-w-lg p-6 bg-slate-900 border border-slate-800 text-white"
+        className="max-w-lg p-6 bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700/80 text-white"
       >
         <div>
           <h3 className="text-lg font-bold text-white mb-1">Create Venue Slot Reservation</h3>
-          <p className="text-xs text-slate-400 mb-5">Reserve slot directly on live backend</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">Reserve slot directly on live system</p>
 
           <form onSubmit={handleCreateBookingSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Sports Venue</label>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Sports Venue</label>
               <select
                 value={newBookingVenueId}
                 onChange={(e) => setNewBookingVenueId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-300 dark:border-gray-600 text-xs text-white"
               >
                 {activeVenues.map((v) => (
                   <option key={v._id || v.id} value={v._id || v.id}>
@@ -656,19 +681,79 @@ export default function BookingsFullScreen() {
               </select>
             </div>
 
+            <div className="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-200 dark:border-gray-600/50">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Customer Selection</label>
+              <div className="flex items-center gap-4 mb-3">
+                <label className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="customerSelectionType"
+                    checked={customerSelectionType === "existing"}
+                    onChange={() => setCustomerSelectionType("existing")}
+                    className="accent-blue-600"
+                  />
+                  Select Existing
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="customerSelectionType"
+                    checked={customerSelectionType === "new"}
+                    onChange={() => setCustomerSelectionType("new")}
+                    className="accent-blue-600"
+                  />
+                  New Customer
+                </label>
+              </div>
+
+              {customerSelectionType === "existing" ? (
+                <select
+                  value={newBookingCustomerId}
+                  onChange={(e) => setNewBookingCustomerId(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-300 dark:border-gray-600 text-xs text-gray-900 dark:text-white"
+                >
+                  <option value="">-- Optional (Admin self) --</option>
+                  {customers.map((c) => (
+                    <option key={c._id || c.id} value={c._id || c.id}>
+                      {c.userName} ({c.phone})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Full Name"
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-300 dark:border-gray-600 text-xs text-gray-900 dark:text-white"
+                  />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Phone Number"
+                    value={newCustomerPhone}
+                    onChange={(e) => setNewCustomerPhone(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-300 dark:border-gray-600 text-xs text-gray-900 dark:text-white"
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Date</label>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Date</label>
                 <input
                   type="date"
                   required
                   value={newBookingDate}
                   onChange={(e) => setNewBookingDate(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-300 dark:border-gray-600 text-xs text-white"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Start Hour (24h)</label>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Start Hour (24h)</label>
                 <input
                   type="number"
                   min="6"
@@ -679,41 +764,41 @@ export default function BookingsFullScreen() {
                     setNewBookingStartHour(st);
                     setNewBookingEndHour(st + 1);
                   }}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-300 dark:border-gray-600 text-xs text-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Payment Method</label>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Payment Method</label>
                 <select
                   value={newBookingPaymentMethod}
                   onChange={(e) => setNewBookingPaymentMethod(e.target.value as PaymentMethod)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-300 dark:border-gray-600 text-xs text-white"
                 >
                   <option value="cash">Cash at Venue</option>
                   <option value="wallet">Digital Wallet</option>
-                  <option value="paymob">Paymob Card</option>
+                  <option value="Credit Card">Credit Card</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Promo Coupon (Optional)</label>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Promo Coupon (Optional)</label>
                 <input
                   type="text"
                   value={newBookingCoupon}
                   onChange={(e) => setNewBookingCoupon(e.target.value.toUpperCase())}
                   placeholder="e.g. PROMO20"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white uppercase font-mono"
+                  className="w-full px-3.5 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md border border-gray-300 dark:border-gray-600 text-xs text-white uppercase font-mono"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700/80">
               <button
                 type="button"
                 onClick={() => setShowNewBooking(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-semibold"
               >
                 Cancel
               </button>
@@ -734,28 +819,28 @@ export default function BookingsFullScreen() {
         <Modal
           isOpen={!!editBooking}
           onClose={() => setEditBooking(null)}
-          className="max-w-md p-6 bg-slate-900 border border-slate-800 text-white"
+          className="max-w-md p-6 bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700/80 text-white"
         >
           <div>
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200 dark:border-gray-700/80">
               <div>
                 <h3 className="text-base font-bold text-white">Booking #{editBooking.bookingCode}</h3>
-                <p className="text-xs text-slate-400">{editBooking.venueName}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{editBooking.venueName}</p>
               </div>
               <span className={`text-xs font-bold px-2 py-0.5 rounded ${statusBadgeStyle[editBooking.status] || ""}`}>
                 {editBooking.status}
               </span>
             </div>
 
-            <div className="space-y-2 text-xs text-slate-300 mb-6 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-              <div><strong className="text-slate-400">Customer:</strong> {editBooking.customerName} ({editBooking.customerPhone})</div>
-              <div><strong className="text-slate-400">Slot:</strong> {editBooking.startTime} - {editBooking.endTime} on {editBooking.date}</div>
-              <div><strong className="text-slate-400">Price:</strong> {fmt(editBooking.price || editBooking.totalPrice || 0)}</div>
-              <div><strong className="text-slate-400">Payment Status:</strong> {editBooking.paymentStatus} ({editBooking.paymentMethod})</div>
+            <div className="space-y-2 text-xs text-gray-700 dark:text-gray-300 mb-6 bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md p-3.5 rounded-xl border border-gray-200 dark:border-gray-700/80">
+              <div><strong className="text-gray-500 dark:text-gray-400">Customer:</strong> {editBooking.customerName} ({editBooking.customerPhone})</div>
+              <div><strong className="text-gray-500 dark:text-gray-400">Slot:</strong> {editBooking.startTime} - {editBooking.endTime} on {editBooking.date}</div>
+              <div><strong className="text-gray-500 dark:text-gray-400">Price:</strong> {fmt(editBooking.price || editBooking.totalPrice || 0)}</div>
+              <div><strong className="text-gray-500 dark:text-gray-400">Payment Status:</strong> {editBooking.paymentStatus} ({editBooking.paymentMethod})</div>
             </div>
 
             <div className="space-y-2">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Update Lifecycle Status</div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Update Lifecycle Status</div>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -773,7 +858,7 @@ export default function BookingsFullScreen() {
                 </button>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700/80 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={() => {
@@ -789,7 +874,7 @@ export default function BookingsFullScreen() {
                 <button
                   type="button"
                   onClick={() => setEditBooking(null)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700"
+                  className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-700"
                 >
                   Close
                 </button>
@@ -804,18 +889,18 @@ export default function BookingsFullScreen() {
         <Modal
           isOpen={!!cancelTarget}
           onClose={() => setCancelTarget(null)}
-          className="max-w-sm p-6 bg-slate-900 border border-slate-800 text-white text-center"
+          className="max-w-sm p-6 bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700/80 text-white text-center"
         >
           <div>
             <span className="text-3xl mb-2 inline-block">⚠️</span>
             <h3 className="text-base font-bold text-white mb-2">Cancel Reservation?</h3>
-            <p className="text-xs text-slate-400 mb-6">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
               This will release the slot for #{cancelTarget.bookingCode} across mobile devices and process a wallet refund if applicable.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setCancelTarget(null)}
-                className="w-full py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700"
+                className="w-full py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-700"
               >
                 No, Keep
               </button>
@@ -832,3 +917,6 @@ export default function BookingsFullScreen() {
     </div>
   );
 }
+
+
+

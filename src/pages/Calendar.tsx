@@ -100,7 +100,7 @@ const Calendar: React.FC = () => {
       />
       <div className="space-y-4">
         {/* Venue Filter Bar */}
-        <div className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 bg-white dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Calendar Schedule
@@ -135,7 +135,7 @@ const Calendar: React.FC = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-700/80 dark:bg-white/[0.03] p-4">
           <div className="custom-calendar">
             <FullCalendar
               ref={calendarRef}
@@ -157,11 +157,11 @@ const Calendar: React.FC = () => {
         <Modal
           isOpen={isOpen}
           onClose={closeModal}
-          className="max-w-md p-6 bg-white dark:bg-gray-900"
+          className="max-w-md p-6 bg-white dark:bg-gray-800/90 backdrop-blur-md"
         >
           {selectedEvent && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-700/80">
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">
                   {selectedEvent.extendedProps.venueName || "Booking Details"}
                 </h3>
@@ -189,7 +189,7 @@ const Calendar: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-800">
+              <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700/80">
                 <button
                   type="button"
                   onClick={closeModal}
@@ -218,3 +218,5 @@ const renderEventContent = (eventInfo: any) => {
 };
 
 export default Calendar;
+
+

@@ -76,7 +76,7 @@ export default function SignInForm() {
               Sign In to VenueOps
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Live NestJS Backend Connected: Enter your admin credentials to access the venue management dashboard.
+              Enter your admin credentials to access the venue management dashboard.
             </p>
           </div>
 
@@ -186,3 +186,4 @@ export default function SignInForm() {
     </div>
   );
 }
+

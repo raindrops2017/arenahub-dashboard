@@ -42,6 +42,7 @@ export function normalizeVenue(raw: any): Venue {
   const startWorkingHours = Number(raw.startWorkingHours ?? 8);
   const endWorkingHours = Number(raw.endWorkingHours ?? 24);
   const defaultHourPrice = Number(raw.defaultHourPrice ?? raw.defaultHourlyPrice ?? raw.pricing?.defaultPricePerHour ?? 250);
+  const minimumDepositAmount = Number(raw.minimumDepositAmount ?? raw.minDeposit ?? 0);
   const isActive = raw.isActive !== false && raw.status !== "Inactive";
 
   // Amenities normalized
@@ -73,6 +74,8 @@ export function normalizeVenue(raw: any): Venue {
     },
     defaultHourPrice: defaultHourPrice,
     defaultHourlyPrice: defaultHourPrice,
+    minimumDepositAmount: minimumDepositAmount,
+    minDeposit: minimumDepositAmount,
     pricing: {
       defaultPricePerHour: defaultHourPrice,
       currency: "EGP",

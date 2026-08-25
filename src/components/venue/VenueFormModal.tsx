@@ -62,6 +62,7 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
   const [startWorkingHours, setStartWorkingHours] = useState<number>(8);
   const [endWorkingHours, setEndWorkingHours] = useState<number>(24);
   const [defaultHourlyPrice, setDefaultHourlyPrice] = useState<number | "">(250);
+  const [minimumDepositAmount, setMinimumDepositAmount] = useState<number | "">(0);
   const [customPricingRules, setCustomPricingRules] = useState<CustomPriceItem[]>([]);
   const [availableAmenities, setAvailableAmenities] = useState<string[]>(DEFAULT_AMENITIES);
   const [amenities, setAmenities] = useState<string[]>(["Parking", "FloodLights", "WiFi"]);
@@ -88,6 +89,9 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
       setEndWorkingHours(Number(editingVenue.endWorkingHours ?? 24));
       setDefaultHourlyPrice(
         editingVenue.defaultHourPrice ?? editingVenue.defaultHourlyPrice ?? 250
+      );
+      setMinimumDepositAmount(
+        editingVenue.minimumDepositAmount ?? editingVenue.minDeposit ?? 0
       );
 
       const rules: CustomPriceItem[] = (editingVenue.customHourPrices || []).map((r: any) => ({
@@ -122,6 +126,7 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
       setStartWorkingHours(8);
       setEndWorkingHours(24);
       setDefaultHourlyPrice(250);
+      setMinimumDepositAmount(0);
       setCustomPricingRules([
         { hour: 19, pricePerHour: 350 },
         { hour: 20, pricePerHour: 350 },
@@ -232,6 +237,10 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
       setErrorMsg("Default Hourly Price must be greater than 0");
       return;
     }
+    if (minimumDepositAmount !== "" && (isNaN(Number(minimumDepositAmount)) || Number(minimumDepositAmount) < 0)) {
+      setErrorMsg("Minimum Deposit Amount must be 0 or a positive number");
+      return;
+    }
     if (sportsTypes.length === 0) {
       setErrorMsg("Select at least one Sports Type");
       return;
@@ -245,6 +254,7 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
     formData.append("startWorkingHours", String(startWorkingHours));
     formData.append("endWorkingHours", String(endWorkingHours));
     formData.append("defaultHourPrice", String(Number(defaultHourlyPrice)));
+    formData.append("minimumDepositAmount", String(minimumDepositAmount === "" ? 0 : Number(minimumDepositAmount)));
     formData.append("isActive", String(status === "Active"));
 
     // sportsType as array fields or JSON
@@ -307,7 +317,7 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
             {editingVenue ? `Edit Venue: ${editingVenue.venueName || editingVenue.name}` : "Create New Sports Venue"}
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            S3 multi-image uploads, GPS coordinates, operating hours, and custom peak pricing.
+            Multi-image uploads, GPS coordinates, operating hours, and custom peak pricing.
           </p>
         </div>
       </div>
@@ -410,7 +420,7 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
           <div className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
             ⏰ Operating Hours & Base Pricing
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 Start Hour (0 - 23)
@@ -451,6 +461,26 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
                 onChange={(e) => setDefaultHourlyPrice(e.target.value === "" ? "" : Number(e.target.value))}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white font-bold"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                Minimum Deposit Per Slot (EGP)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={minimumDepositAmount}
+                onChange={(e) =>
+                  setMinimumDepositAmount(e.target.value === "" ? "" : Number(e.target.value))
+                }
+                placeholder="e.g. 100 (0 for full payment)"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white font-bold"
+              />
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 block mt-1">
+                0 = full payment upfront
+              </span>
             </div>
           </div>
         </div>
@@ -679,7 +709,7 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
           </button>
           <Button size="md" type="submit" disabled={isSubmitting}>
             {isSubmitting
-              ? "Saving to Backend..."
+              ? "Saving..."
               : editingVenue
               ? "Save Changes"
               : "Create Venue"}
@@ -691,3 +721,5 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
 };
 
 export default VenueFormModal;
+
+

@@ -168,14 +168,14 @@ export default function VenuesPage() {
     <>
       <PageMeta
         title="Live Sports Venues Management | VenueOps"
-        description="Live NestJS backend connected venue management with S3 multi-image uploads."
+        description="Live connected venue management with Multi-image uploads."
       />
 
       <PageBreadcrumb pageTitle="Venue Management" />
 
       <div className="space-y-6">
         {/* Header Card */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 sm:p-6 shadow-sm">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md sm:p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-3">
@@ -187,7 +187,7 @@ export default function VenuesPage() {
                 </Badge>
               </div>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Connected to live NestJS backend. Multi-image S3 storage, custom hourly rates, and working hours.
+                Connected to system. Multi-image storage, custom hourly rates, and working hours.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -210,7 +210,7 @@ export default function VenuesPage() {
           </div>
 
           {/* Stats Bar */}
-          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-gray-100 pt-6 dark:border-gray-800 sm:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-gray-100 pt-6 dark:border-gray-700/80 sm:grid-cols-4">
             <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                 TOTAL VENUES
@@ -259,7 +259,7 @@ export default function VenuesPage() {
         )}
 
         {/* Filter Controls Bar */}
-        <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 sm:flex-row sm:items-center sm:justify-between shadow-sm">
+        <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between shadow-sm">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[200px]">
@@ -328,14 +328,14 @@ export default function VenuesPage() {
 
         {/* Venues Grid / Table Content */}
         {loading && venues.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-800/90 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-gray-700/80">
             <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-3"></div>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Loading venues from live backend...
+              Loading venues from live system...
             </p>
           </div>
         ) : filteredVenues.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 text-center">
+          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-800/90 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-gray-700/80 text-center">
             <span className="text-4xl mb-3">🏟️</span>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
               No Venues Found
@@ -364,7 +364,7 @@ export default function VenuesPage() {
               return (
                 <div
                   key={venue._id || venue.id}
-                  className="rounded-2xl border border-gray-200 bg-white overflow-hidden dark:border-gray-800 dark:bg-gray-900 hover:shadow-lg transition-shadow flex flex-col"
+                  className="rounded-2xl border border-gray-200 bg-white overflow-hidden dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md hover:shadow-lg transition-shadow flex flex-col"
                 >
                   {/* Card Cover Header */}
                   <div className="relative aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden">
@@ -408,7 +408,7 @@ export default function VenuesPage() {
                     </div>
 
                     {/* Schedule & Pricing Row */}
-                    <div className="pt-3 border-t border-gray-100 dark:border-gray-800 grid grid-cols-2 gap-2 text-xs">
+                    <div className="pt-3 border-t border-gray-100 dark:border-gray-700/80 grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <span className="text-gray-400 dark:text-gray-500 block text-[10px] font-semibold uppercase">
                           HOURLY RATE
@@ -433,7 +433,7 @@ export default function VenuesPage() {
                     </div>
 
                     {/* Card Footer Actions */}
-                    <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                    <div className="pt-3 border-t border-gray-100 dark:border-gray-700/80 flex items-center justify-between">
                       <button
                         onClick={() => handleOpenDetail(venue)}
                         className="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1"
@@ -465,10 +465,10 @@ export default function VenuesPage() {
           </div>
         ) : (
           /* Table View Mode */
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 shadow-sm">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
             <div className="max-w-full overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200 dark:bg-gray-800/50 dark:border-gray-800 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+                <thead className="bg-gray-50 border-b border-gray-200 dark:bg-gray-800/50 dark:border-gray-700/80 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
                   <tr>
                     <th className="px-6 py-4">Venue Details</th>
                     <th className="px-6 py-4">Sports Types</th>
@@ -490,7 +490,7 @@ export default function VenuesPage() {
                     const isActive = venue.isActive !== false;
 
                     return (
-                      <tr key={venue._id || venue.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40">
+                      <tr key={venue._id || venue.id} className="hover:bg-gray-50/60 dark:hover:bg-white/5">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <img
@@ -614,3 +614,6 @@ export default function VenuesPage() {
     </>
   );
 }
+
+
+

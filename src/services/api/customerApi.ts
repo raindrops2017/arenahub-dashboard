@@ -34,6 +34,12 @@ export const customerApi = {
     return res.map(normalizeCustomer);
   },
 
+  createCustomer: async (data: { userName: string; phone: string }): Promise<CustomerUser> => {
+    const res = await api.post<any>("/users/customers", data);
+    const item = res?.data || res;
+    return normalizeCustomer(item);
+  },
+
   updateCustomerUser: async (
     id: string,
     data: FormData | {

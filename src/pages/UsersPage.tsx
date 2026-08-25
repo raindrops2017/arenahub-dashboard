@@ -146,7 +146,7 @@ export default function UsersPage() {
 
       <div className="space-y-6">
         {/* Header Bar */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 lg:p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md lg:p-6 shadow-sm">
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white/90">
@@ -157,7 +157,7 @@ export default function UsersPage() {
               </Badge>
             </div>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Manage SuperAdmins, Venue Managers, and Staff access permissions on the live backend.
+              Manage SuperAdmins, Venue Managers, and Staff access permissions on the live system.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ export default function UsersPage() {
         </div>
 
         {/* Filter Controls */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1 min-w-[200px]">
               <input
@@ -201,10 +201,10 @@ export default function UsersPage() {
         </div>
 
         {/* Users Table */}
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
           <div className="max-w-full overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 dark:bg-gray-800/50 dark:border-gray-800 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+              <thead className="bg-gray-50 border-b border-gray-200 dark:bg-gray-800/50 dark:border-gray-700/80 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
                 <tr>
                   <th className="px-6 py-4">User</th>
                   <th className="px-6 py-4">Email</th>
@@ -267,7 +267,7 @@ export default function UsersPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        className="max-w-md p-6 bg-white dark:bg-gray-900"
+        className="max-w-md p-6 bg-white dark:bg-gray-800/90 backdrop-blur-md"
       >
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
@@ -342,7 +342,7 @@ export default function UsersPage() {
               </select>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/80">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
@@ -360,3 +360,6 @@ export default function UsersPage() {
     </>
   );
 }
+
+
+

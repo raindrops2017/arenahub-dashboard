@@ -58,7 +58,7 @@ export default function Home() {
     reload();
   }, [reload]);
 
-  // Real-time WebSocket Sync: Auto-update overview metrics when payments/bookings occur
+  // Real-time Sync: Auto-update overview metrics when payments/bookings occur
   useEffect(() => {
     const activeVList = venues.filter((v) => v.isActive !== false);
     activeVList.forEach((v) => {
@@ -104,20 +104,20 @@ export default function Home() {
       <PageMeta title="VenueOps Live Dashboard | Pitch Booking Manager" description="Live admin overview for venue booking management" />
 
       {/* ─── Hero Welcome Banner ─── */}
-      <div className="relative overflow-hidden mb-6 p-6 md:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-slate-800 shadow-xl">
+      <div className="relative overflow-hidden mb-6 p-6 md:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-gray-200 dark:border-gray-700/80 shadow-xl">
         <div className="absolute right-0 top-0 bottom-0 opacity-15 pointer-events-none flex items-center">
           <svg className="w-96 h-96 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg>
         </div>
 
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wider mb-3">
-            <span>⚽</span> Live NestJS Connected
+            <span>⚽</span> System Connected
           </div>
           <h1 className="text-3xl font-black tracking-tight text-white">
             Welcome to VenueOps Dashboard
           </h1>
-          <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-            Monitor real-time pitch bookings, venue occupancy rates, customer wallets, and revenue analytics connected to the live backend.
+          <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 leading-relaxed">
+            Monitor real-time pitch bookings, venue occupancy rates, customer wallets, and revenue analytics connected to the live system.
           </p>
 
           <div className="flex items-center gap-3 mt-5 flex-wrap">
@@ -130,7 +130,7 @@ export default function Home() {
 
             <Link
               to="/reports"
-              className="px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs transition"
+              className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800/80 hover:bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 font-bold text-xs transition"
             >
               View Analytics →
             </Link>
@@ -288,3 +288,6 @@ function ActionCard({ to, icon, title, desc, primary }: { to: string; icon: stri
     </Link>
   );
 }
+
+
+

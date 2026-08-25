@@ -192,7 +192,7 @@ export default function ReportsPage() {
   }, [data, venueFilter, bookings]);
 
   if (loading && !data) {
-    return <div className="flex items-center justify-center h-64 text-slate-400">Loading Live Report Analytics...</div>;
+    return <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">Loading Live Report Analytics...</div>;
   }
 
   if (!filtered) return null;
@@ -272,13 +272,13 @@ export default function ReportsPage() {
 
       <div className="space-y-6">
         {/* Top Header & Filter Bar */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
               Revenue & Financial Analytics
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Live backend calculations: slot reservations, customer wallet refunds, and capacity utilization.
+            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-1">
+              live system calculations: slot reservations, customer wallet refunds, and capacity utilization.
             </p>
           </div>
 
@@ -286,7 +286,7 @@ export default function ReportsPage() {
             <select
               value={venueFilter}
               onChange={(e) => setVenueFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-gray-50 dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
             >
               <option value="all">All Sports Venues</option>
               {venues.map((v) => (
@@ -314,13 +314,13 @@ export default function ReportsPage() {
         </div>
 
         {/* ─── Revenue Area Chart ─── */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
                 Revenue Trajectory (Gross vs Net vs Refunds)
               </h2>
-              <p className="text-xs text-slate-400">Daily financial breakdown in EGP</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Daily financial breakdown in EGP</p>
             </div>
           </div>
           <Chart options={revenueOpts} series={revenueSeries} type="area" height={300} />
@@ -329,20 +329,20 @@ export default function ReportsPage() {
         {/* ─── Grid 2 Columns: Venue Performance & Peak Demand ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Venue Performance Bar */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-1">
+          <div className="p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">
               Venue Performance Ranking
             </h2>
-            <p className="text-xs text-slate-400 mb-4">Revenue and booking volume per court</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Revenue and booking volume per court</p>
             <Chart options={venuePerfOpts} series={venuePerfSeries} type="bar" height={260} />
           </div>
 
           {/* Peak Hourly Demand */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-1">
+          <div className="p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">
               Peak Slot Demand Distribution
             </h2>
-            <p className="text-xs text-slate-400 mb-4">Booking frequency across operating hours</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Booking frequency across operating hours</p>
             <Chart options={peakOpts} series={peakSeries} type="bar" height={260} />
           </div>
         </div>
@@ -350,43 +350,43 @@ export default function ReportsPage() {
         {/* ─── Grid 2 Columns: Cancellation Breakdown & Summary Table ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Cancellation Donut */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+          <div className="p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm flex flex-col justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-1">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">
                 Cancellation & Refund Ratio
               </h2>
-              <p className="text-xs text-slate-400 mb-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                 Rate: <strong className="text-rose-500">{pct(filtered.cancellationRate)}</strong>
               </p>
             </div>
             <div className="py-4">
               <Chart options={cancelOpts} series={cancelSeries} type="donut" height={220} />
             </div>
-            <div className="text-xs text-slate-400 text-center pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-3 border-t border-slate-100 dark:border-gray-700/80">
               {filtered.cancelledBookings} of {filtered.totalBookings} match reservations refunded
             </div>
           </div>
 
           {/* Detailed Venue Summary Table */}
-          <div className="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-1">
+          <div className="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">
               Court Financial Ledger Breakdown
             </h2>
-            <p className="text-xs text-slate-400 mb-4">Granular performance metrics by pitch</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Granular performance metrics by pitch</p>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold uppercase">
+                  <tr className="border-b border-gray-200 dark:border-gray-700/80 text-gray-500 dark:text-gray-400 font-bold uppercase">
                     <th className="pb-3">Venue Name</th>
                     <th className="pb-3">Bookings</th>
                     <th className="pb-3">Total Revenue</th>
                     <th className="pb-3 text-right">Occupancy Est.</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60 font-medium">
                   {filtered.venuePerformance.map((vp) => (
-                    <tr key={vp.venueId} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="py-3 font-bold text-slate-900 dark:text-white">{vp.venueName}</td>
+                    <tr key={vp.venueId} className="hover:bg-gray-50 dark:hover:bg-gray-100 dark:bg-gray-800/40">
+                      <td className="py-3 font-bold text-gray-900 dark:text-white">{vp.venueName}</td>
                       <td className="py-3">{vp.bookingsCount} slots</td>
                       <td className="py-3 font-bold text-emerald-600 dark:text-emerald-400">{fmt(vp.totalRevenue)}</td>
                       <td className="py-3 text-right text-indigo-600 dark:text-indigo-400 font-bold">{pct(vp.occupancyRate)}</td>
@@ -411,13 +411,16 @@ function KpiCard({ icon, label, value, sub, color }: { icon: string; label: stri
   };
 
   return (
-    <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div className="p-5 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</span>
         <span className={`text-base p-1.5 rounded-xl border ${colorMap[color] || ""}`}>{icon}</span>
       </div>
-      <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{value}</div>
-      <div className="text-[11px] text-slate-400 mt-1">{sub}</div>
+      <div className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">{value}</div>
+      <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{sub}</div>
     </div>
   );
 }
+
+
+

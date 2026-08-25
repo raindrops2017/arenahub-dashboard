@@ -271,7 +271,7 @@ export default function CustomersPage() {
 
       <div className="space-y-6">
         {/* Header Bar */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 lg:p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md lg:p-6 shadow-sm">
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white/90">
@@ -294,7 +294,7 @@ export default function CustomersPage() {
 
         {/* Summary Metrics Cards Grid */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                 Total Customers
@@ -311,7 +311,7 @@ export default function CustomersPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                 Active Players
@@ -328,7 +328,7 @@ export default function CustomersPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                 On Hold Accounts
@@ -345,7 +345,7 @@ export default function CustomersPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                 Total Wallet Pool
@@ -364,7 +364,7 @@ export default function CustomersPage() {
         </div>
 
         {/* Filter and Search Bar */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[200px]">
@@ -393,10 +393,10 @@ export default function CustomersPage() {
         </div>
 
         {/* Customers Table */}
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
           <div className="max-w-full overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 dark:bg-gray-800/50 dark:border-gray-800 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+              <thead className="bg-gray-50 border-b border-gray-200 dark:bg-gray-800/50 dark:border-gray-700/80 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
                 <tr>
                   <th className="px-6 py-4">Customer</th>
                   <th className="px-6 py-4">Phone Number</th>
@@ -499,7 +499,7 @@ export default function CustomersPage() {
       <Modal
         isOpen={isDepositModalOpen}
         onClose={() => setIsDepositModalOpen(false)}
-        className="max-w-md p-6 bg-white dark:bg-gray-900"
+        className="max-w-md p-6 bg-white dark:bg-gray-800/90 backdrop-blur-md"
       >
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
@@ -537,7 +537,7 @@ export default function CustomersPage() {
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/80">
               <button
                 type="button"
                 onClick={() => setIsDepositModalOpen(false)}
@@ -557,7 +557,7 @@ export default function CustomersPage() {
       <Modal
         isOpen={isPayoutModalOpen}
         onClose={() => setIsPayoutModalOpen(false)}
-        className="max-w-md p-6 bg-white dark:bg-gray-900"
+        className="max-w-md p-6 bg-white dark:bg-gray-800/90 backdrop-blur-md"
       >
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
@@ -609,7 +609,7 @@ export default function CustomersPage() {
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/80">
               <button
                 type="button"
                 onClick={() => setIsPayoutModalOpen(false)}
@@ -629,7 +629,7 @@ export default function CustomersPage() {
       <Modal
         isOpen={isCustomerModalOpen}
         onClose={() => setIsCustomerModalOpen(false)}
-        className="max-w-md p-6 bg-white dark:bg-gray-900"
+        className="max-w-md p-6 bg-white dark:bg-gray-800/90 backdrop-blur-md"
       >
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
@@ -689,7 +689,7 @@ export default function CustomersPage() {
               </select>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/80">
               <button
                 type="button"
                 onClick={() => setIsCustomerModalOpen(false)}
@@ -708,9 +708,9 @@ export default function CustomersPage() {
       {/* ─── DRAWER TRANSACTIONS HISTORY ─── */}
       {drawerCustomer && (
         <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-sm flex justify-end">
-          <div className="w-full max-w-md bg-white dark:bg-gray-900 h-full p-6 shadow-2xl overflow-y-auto flex flex-col justify-between">
+          <div className="w-full max-w-md bg-white dark:bg-gray-800/90 backdrop-blur-md h-full p-6 shadow-2xl overflow-y-auto flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700/80">
                 <div className="flex items-center gap-3">
                   <img
                     src={drawerCustomer.avatar || drawerCustomer.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
@@ -789,7 +789,7 @@ export default function CustomersPage() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700/80">
               <button
                 onClick={() => setDrawerCustomer(null)}
                 className="w-full py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold hover:bg-gray-200"
@@ -803,3 +803,5 @@ export default function CustomersPage() {
     </>
   );
 }
+
+

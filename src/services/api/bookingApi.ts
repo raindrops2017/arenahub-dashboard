@@ -84,7 +84,7 @@ export interface VerifyBookingResponse {
 export const bookingApi = {
   getVenueBookings: async (venueId: string, query?: QueryBookingParams): Promise<Booking[]> => {
     const res = await api.get<any>(`/booking/venue/${venueId}`, query);
-    const docs = res && Array.isArray(res.docs) ? res.docs : Array.isArray(res) ? res : [];
+    const docs = res && Array.isArray(res.data) ? res.data : res && Array.isArray(res.docs) ? res.docs : Array.isArray(res) ? res : [];
     return docs.map(normalizeBooking);
   },
 
@@ -125,6 +125,7 @@ export const bookingApi = {
     endTime: number;
     couponCode?: string;
     paymentMethod?: string;
+    customerId?: string;
   }): Promise<{ booking: Booking; payment?: any }> => {
     const res = await api.post<any>("/booking", data);
     if (res && res.booking) {

@@ -87,6 +87,12 @@ export interface Venue {
   defaultHourPrice: number;
   defaultHourlyPrice?: number; // UI alias
   pricing?: VenuePricing; // UI alias
+  minimumDepositAmount?: number;
+  minDeposit?: number; // UI alias
+  existingImages?: string[];
+  keepImages?: string[];
+  removedImages?: string[];
+  deleteImages?: string[];
   customHourPrices?: CustomHourPrice[];
   customHourlyPrices?: CustomPricingRate[]; // UI alias
   isActive: boolean;
@@ -231,9 +237,11 @@ export type PaymentStatus =
   | 'unpaid'
   | 'paid'
   | 'pay_at_venue'
+  | 'partially_paid'
   | 'refunded'
   | 'partially_refunded'
   | 'Paid'
+  | 'Partially Paid'
   | 'Pending'
   | 'Refunded'
   | 'Partially Refunded';
@@ -242,6 +250,7 @@ export interface Booking {
   _id: string;
   id: string; // UI compatibility
   bookingCode?: string;
+  groupId?: string;
   venueId: string | any;
   venueName?: string;
   userId: string | any;

@@ -146,7 +146,7 @@ export default function AdBannersPage() {
       }
     } catch (err: any) {
       console.warn("Failed to load advertisements from API:", err);
-      setErrorMsg(err.message || "Failed to load advertisements from backend.");
+      setErrorMsg(err.message || "Failed to load advertisements.");
     } finally {
       setLoading(false);
     }
@@ -324,7 +324,7 @@ export default function AdBannersPage() {
       <div className="space-y-6">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Banners</p>
@@ -338,7 +338,7 @@ export default function AdBannersPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Active Mobile Ads</p>
@@ -352,7 +352,7 @@ export default function AdBannersPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Views</p>
@@ -366,7 +366,7 @@ export default function AdBannersPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Clicks</p>
@@ -388,7 +388,7 @@ export default function AdBannersPage() {
         ) : null}
 
         {/* Filter Controls Bar */}
-        <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <input
               type="text"
@@ -403,15 +403,15 @@ export default function AdBannersPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="h-11 rounded-xl border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:text-white"
             >
-              <option value="ALL" className="dark:bg-gray-900">All Statuses</option>
-              <option value="Active" className="dark:bg-gray-900">Active Only</option>
-              <option value="Inactive" className="dark:bg-gray-900">Inactive Only</option>
+              <option value="ALL" className="dark:bg-gray-800/90 backdrop-blur-md">All Statuses</option>
+              <option value="Active" className="dark:bg-gray-800/90 backdrop-blur-md">Active Only</option>
+              <option value="Inactive" className="dark:bg-gray-800/90 backdrop-blur-md">Inactive Only</option>
             </select>
           </div>
 
           <div className="flex items-center gap-3">
             {/* View Mode Toggle */}
-            <div className="flex items-center rounded-xl border border-gray-200 p-1 dark:border-gray-800">
+            <div className="flex items-center rounded-xl border border-gray-200 p-1 dark:border-gray-700/80">
               <button
                 onClick={() => setViewMode("grid")}
                 className={`rounded-lg p-2 transition-colors ${
@@ -448,11 +448,11 @@ export default function AdBannersPage() {
 
         {/* Content Section: Grid View */}
         {loading ? (
-          <div className="flex h-60 items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+          <div className="flex h-60 items-center justify-center rounded-2xl border border-gray-200 bg-white dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div>
           </div>
         ) : filteredBanners.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center dark:border-gray-800 dark:bg-gray-900">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md">
             <ShootingStarIcon className="h-12 w-12 text-gray-400 mb-3" />
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">No ad banners found</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -469,7 +469,7 @@ export default function AdBannersPage() {
               return (
                 <div
                   key={banner.id}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md"
                 >
                   {/* Banner Preview Card */}
                   <div className="relative h-44 w-full bg-gray-900">
@@ -531,7 +531,7 @@ export default function AdBannersPage() {
                         </p>
                       )}
 
-                      <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-800">
+                      <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-700/80">
                         <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                           <span className="flex items-center gap-1">
                             <EyeIcon className="h-3.5 w-3.5 text-blue-500" /> {banner.impressions || 0} views
@@ -544,7 +544,7 @@ export default function AdBannersPage() {
                     </div>
 
                     {/* Actions Footer */}
-                    <div className="mt-4 flex items-center justify-end gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                    <div className="mt-4 flex items-center justify-end gap-2 border-t border-gray-100 pt-3 dark:border-gray-700/80">
                       <button
                         onClick={() => handleOpenEditModal(banner)}
                         className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
@@ -570,10 +570,10 @@ export default function AdBannersPage() {
           </div>
         ) : (
           /* Table View */
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md">
             <div className="max-w-full overflow-x-auto">
               <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
-                <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase text-gray-700 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
+                <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase text-gray-700 dark:border-gray-700/80 dark:bg-gray-800/50 dark:text-gray-300">
                   <tr>
                     <th className="px-6 py-4">Banner</th>
                     <th className="px-6 py-4">Priority</th>
@@ -673,11 +673,11 @@ export default function AdBannersPage() {
       <Modal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
-        className="max-w-2xl w-full p-0 overflow-hidden rounded-3xl bg-white dark:bg-gray-900 shadow-2xl flex flex-col max-h-[88vh]"
+        className="max-w-2xl w-full p-0 overflow-hidden rounded-3xl bg-white dark:bg-gray-800/90 backdrop-blur-md shadow-2xl flex flex-col max-h-[88vh]"
       >
         <div className="flex flex-col h-full max-h-[88vh]">
           {/* Sticky Header */}
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0 bg-white dark:bg-gray-900">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700/80 flex items-center justify-between shrink-0 bg-white dark:bg-gray-800/90 backdrop-blur-md">
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                 {editingBanner ? "Edit Ad Banner" : "Create New Ad Banner"}
@@ -692,7 +692,7 @@ export default function AdBannersPage() {
           <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 min-h-0">
             <div className="px-6 py-5 overflow-y-auto space-y-5 flex-1">
               {/* Section 1: Creative & Visual Content */}
-              <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-800/30">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700/80 dark:bg-gray-800/30">
                 <div className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
                   <span>🎨 Banner Content & Image</span>
                 </div>
@@ -891,7 +891,7 @@ export default function AdBannersPage() {
               </div>
 
               {/* Section 4: Target Link & Priority */}
-              <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-800/30">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700/80 dark:bg-gray-800/30">
                 <div className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
                   <span>🔗 Click Action & Priority</span>
                 </div>
@@ -964,7 +964,7 @@ export default function AdBannersPage() {
             </div>
 
             {/* Sticky Modal Footer */}
-            <div className="px-6 py-3.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0 bg-gray-50/80 dark:bg-gray-800/40">
+            <div className="px-6 py-3.5 border-t border-gray-100 dark:border-gray-700/80 flex items-center justify-between shrink-0 bg-gray-50/80 dark:bg-gray-800/40">
               <span className="text-[11px] text-gray-500 dark:text-gray-400">
                 ⚡ Changes sync immediately with the mobile app carousel.
               </span>
@@ -1018,3 +1018,6 @@ export default function AdBannersPage() {
     </>
   );
 }
+
+
+

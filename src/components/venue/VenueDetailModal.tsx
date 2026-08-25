@@ -22,6 +22,7 @@ export const VenueDetailModal: React.FC<VenueDetailModalProps> = ({
   if (!venue) return null;
 
   const defaultPrice = venue.defaultHourPrice ?? venue.defaultHourlyPrice ?? venue.pricing?.defaultPricePerHour ?? 200;
+  const depositAmount = venue.minimumDepositAmount ?? venue.minDeposit ?? 0;
   const customRules = venue.customHourPrices || venue.customHourlyPrices || venue.pricing?.customHourlyRates || [];
   const gallery = (venue.images && venue.images.length > 0) ? venue.images : ((venue.imageUrls && venue.imageUrls.length > 0) ? venue.imageUrls : ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80"]);
   const [activePhotoIdx, setActivePhotoIdx] = React.useState(0);
@@ -128,7 +129,7 @@ export const VenueDetailModal: React.FC<VenueDetailModalProps> = ({
         </div>
 
         {/* Operating Hours & Pricing Summary Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200 dark:bg-gray-800/60 dark:border-gray-700">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200 dark:bg-gray-800/60 dark:border-gray-700">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
               <TimeIcon className="w-4 h-4 text-brand-500" /> OPERATING HOURS
@@ -150,6 +151,18 @@ export const VenueDetailModal: React.FC<VenueDetailModalProps> = ({
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Custom rules: {customRules.length} override(s)
+            </p>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+              <DollarLineIcon className="w-4 h-4 text-brand-500" /> MINIMUM DEPOSIT / SLOT
+            </div>
+            <p className="text-lg font-bold text-brand-600 dark:text-brand-400">
+              {depositAmount > 0 ? `${depositAmount} EGP` : "0 EGP"}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {depositAmount > 0 ? `${depositAmount} EGP (Deposit)` : "0 EGP (Full Payment)"}
             </p>
           </div>
         </div>
