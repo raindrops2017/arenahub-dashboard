@@ -488,13 +488,32 @@ export default function BookingsFullScreen() {
                                     {b.bookingCode ? `#${b.bookingCode}` : ""}
                                   </div>
                                 </div>
-                                <div className="mt-2 flex items-center justify-between text-[11px] pt-1.5 border-t border-gray-200 dark:border-gray-700/80">
-                                  <span className="font-bold text-emerald-400">
-                                    {fmt(b.price || b.totalPrice || 0)}
-                                  </span>
-                                  <span className="text-gray-500 dark:text-gray-400 font-mono">
-                                    {b.paymentStatus}
-                                  </span>
+                                <div className="mt-2 space-y-1 text-[11px] pt-1.5 border-t border-gray-200 dark:border-gray-700/80">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Total:</span>
+                                    <span className="font-bold text-gray-800 dark:text-gray-200">
+                                      {fmt(b.price || b.totalPrice || 0)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-emerald-500 dark:text-emerald-400 font-medium">Paid:</span>
+                                    <span className="font-bold text-emerald-500 dark:text-emerald-400">
+                                      {fmt(b.paidAmount ?? 0)}
+                                    </span>
+                                  </div>
+                                  {(b.remainingAmount !== undefined ? b.remainingAmount : 0) > 0 ? (
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-amber-500 dark:text-amber-400 font-medium">Due:</span>
+                                      <span className="font-bold text-amber-500 dark:text-amber-400 bg-amber-500/10 px-1 rounded">
+                                        {fmt(b.remainingAmount || 0)}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-between text-[10px]">
+                                      <span className="text-gray-500 dark:text-gray-400">Due:</span>
+                                      <span className="text-emerald-500 dark:text-emerald-400 font-bold">0 EGP (Full)</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </td>
@@ -535,7 +554,9 @@ export default function BookingsFullScreen() {
                   <th className="px-6 py-4">Customer</th>
                   <th className="px-6 py-4">Venue</th>
                   <th className="px-6 py-4">Time Slot</th>
-                  <th className="px-6 py-4">Price</th>
+                  <th className="px-6 py-4">Total Price</th>
+                  <th className="px-6 py-4">Paid</th>
+                  <th className="px-6 py-4">Remaining Due</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -556,8 +577,22 @@ export default function BookingsFullScreen() {
                     <td className="px-6 py-4 text-gray-700 dark:text-gray-300 font-mono">
                       {b.startTime} - {b.endTime}
                     </td>
-                    <td className="px-6 py-4 font-bold text-emerald-400">
+                    <td className="px-6 py-4 font-bold text-gray-800 dark:text-gray-200">
                       {fmt(b.price || b.totalPrice || 0)}
+                    </td>
+                    <td className="px-6 py-4 font-bold text-emerald-400">
+                      {fmt(b.paidAmount ?? 0)}
+                    </td>
+                    <td className="px-6 py-4 font-bold">
+                      {(b.remainingAmount !== undefined ? b.remainingAmount : 0) > 0 ? (
+                        <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                          {fmt(b.remainingAmount || 0)}
+                        </span>
+                      ) : (
+                        <span className="text-emerald-400 text-[11px]">
+                          0 EGP (Full)
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${statusBadgeStyle[b.status] || "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"}`}>
@@ -636,7 +671,13 @@ export default function BookingsFullScreen() {
                 <div><strong className="text-gray-500 dark:text-gray-400">Customer:</strong> {verifyResult.booking.customerName} ({verifyResult.booking.customerPhone})</div>
                 <div><strong className="text-gray-500 dark:text-gray-400">Venue:</strong> {verifyResult.booking.venueName}</div>
                 <div><strong className="text-gray-500 dark:text-gray-400">Slot Time:</strong> {verifyResult.booking.startTime} - {verifyResult.booking.endTime} ({verifyResult.booking.date})</div>
-                <div><strong className="text-gray-500 dark:text-gray-400">Payment:</strong> {verifyResult.booking.paymentStatus} ({fmt(verifyResult.booking.price || 0)})</div>
+                <div><strong className="text-gray-500 dark:text-gray-400">Total Price:</strong> {fmt(verifyResult.booking.price || verifyResult.booking.totalPrice || 0)}</div>
+                <div className="flex items-center gap-2">
+                  <span><strong className="text-emerald-400">Paid:</strong> {fmt(verifyResult.booking.paidAmount ?? 0)}</span>
+                  <span>•</span>
+                  <span><strong className="text-amber-400">Due at Venue:</strong> {fmt(verifyResult.booking.remainingAmount || 0)}</span>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400">({verifyResult.booking.paymentStatus})</span>
+                </div>
               </div>
               {verifyResult.valid && (
                 <button
@@ -835,7 +876,12 @@ export default function BookingsFullScreen() {
             <div className="space-y-2 text-xs text-gray-700 dark:text-gray-300 mb-6 bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md p-3.5 rounded-xl border border-gray-200 dark:border-gray-700/80">
               <div><strong className="text-gray-500 dark:text-gray-400">Customer:</strong> {editBooking.customerName} ({editBooking.customerPhone})</div>
               <div><strong className="text-gray-500 dark:text-gray-400">Slot:</strong> {editBooking.startTime} - {editBooking.endTime} on {editBooking.date}</div>
-              <div><strong className="text-gray-500 dark:text-gray-400">Price:</strong> {fmt(editBooking.price || editBooking.totalPrice || 0)}</div>
+              <div><strong className="text-gray-500 dark:text-gray-400">Total Price:</strong> {fmt(editBooking.price || editBooking.totalPrice || 0)}</div>
+              <div className="flex items-center gap-2">
+                <span><strong className="text-emerald-400">Paid Amount:</strong> {fmt(editBooking.paidAmount ?? 0)}</span>
+                <span>•</span>
+                <span><strong className="text-amber-400">Remaining Due:</strong> {fmt(editBooking.remainingAmount || 0)}</span>
+              </div>
               <div><strong className="text-gray-500 dark:text-gray-400">Payment Status:</strong> {editBooking.paymentStatus} ({editBooking.paymentMethod})</div>
             </div>
 

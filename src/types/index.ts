@@ -266,6 +266,8 @@ export interface Booking {
   price?: number;
   discountAmount?: number;
   finalPrice?: number;
+  paidAmount?: number;
+  remainingAmount?: number;
   couponCode?: string;
   currency?: string;
   paymentMethod: PaymentMethod;

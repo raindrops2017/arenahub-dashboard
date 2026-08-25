@@ -45,6 +45,17 @@ export function normalizeBooking(raw: any): Booking {
   const { startStr, endStr } = formatTimeSlot(startHour, endHour);
 
   const price = Number(raw.finalPrice ?? raw.totalPrice ?? raw.price ?? 0);
+  let paidAmount = 0;
+  if (raw.paidAmount !== undefined && raw.paidAmount !== null) {
+    paidAmount = Number(raw.paidAmount);
+  } else if (raw.paymentStatus === 'paid' || raw.paymentStatus === 'Paid') {
+    paidAmount = price;
+  } else if (raw.paymentStatus === 'partially_paid' || raw.paymentStatus === 'Partially Paid') {
+    paidAmount = Number(raw.paidAmount || (raw.discountAmount ? Math.max(0, price - raw.discountAmount) : Math.min(100, price)));
+  } else {
+    paidAmount = 0;
+  }
+  const remainingAmount = Math.max(0, Number((price - paidAmount).toFixed(2)));
 
   return {
     ...raw,
@@ -65,6 +76,8 @@ export function normalizeBooking(raw: any): Booking {
     price: price,
     totalPrice: price,
     finalPrice: price,
+    paidAmount: paidAmount,
+    remainingAmount: remainingAmount,
     status: raw.status as BookingStatus,
     paymentStatus: raw.paymentStatus as PaymentStatus,
     paymentMethod: raw.paymentMethod as PaymentMethod,
