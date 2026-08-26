@@ -24,6 +24,8 @@ import VenuesPage from "./pages/VenuesPage";
 import BookingsFullScreen from "./pages/BookingsFullScreen";
 import ReportsPage from "./pages/ReportsPage";
 import AdBannersPage from "./pages/AdBannersPage";
+import PaymobTransactionsPage from "./pages/PaymobTransactionsPage";
+import CouponsPage from "./pages/CouponsPage";
 import { DashboardAuthProvider } from "./context/DashboardAuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -45,6 +47,8 @@ export default function App() {
             <Route path="/users" element={<UsersPage />} />
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/venues" element={<VenuesPage />} />
+            <Route path="/paymob-transactions" element={<PaymobTransactionsPage />} />
+            <Route path="/coupons" element={<CouponsPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/ad-banners" element={<AdBannersPage />} />
 

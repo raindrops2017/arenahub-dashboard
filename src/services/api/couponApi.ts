@@ -24,6 +24,23 @@ export interface ValidateCouponResponse {
 }
 
 export const couponApi = {
+  getAllCoupons: async (query?: { search?: string; status?: string }): Promise<Coupon[]> => {
+    const res = await api.get<any>("/coupon", query);
+    const docs = res && Array.isArray(res.data)
+      ? res.data
+      : res && Array.isArray(res.docs)
+      ? res.docs
+      : Array.isArray(res)
+      ? res
+      : [];
+    return docs;
+  },
+
+  getCouponById: async (id: string): Promise<Coupon> => {
+    const res = await api.get<any>(`/coupon/${id}`);
+    return res?.data || res;
+  },
+
   createCoupon: async (payload: CreateCouponPayload): Promise<Coupon> => {
     const res = await api.post<any>("/coupon", payload);
     return res?.data || res;

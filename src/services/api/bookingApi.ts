@@ -95,6 +95,12 @@ export interface VerifyBookingResponse {
 }
 
 export const bookingApi = {
+  getCustomerBookings: async (customerId: string, query?: QueryBookingParams): Promise<Booking[]> => {
+    const res = await api.get<any>(`/booking/customer/${customerId}`, query);
+    const docs = res && Array.isArray(res.data) ? res.data : res && Array.isArray(res.docs) ? res.docs : Array.isArray(res) ? res : [];
+    return docs.map(normalizeBooking);
+  },
+
   getVenueBookings: async (venueId: string, query?: QueryBookingParams): Promise<Booking[]> => {
     const res = await api.get<any>(`/booking/venue/${venueId}`, query);
     const docs = res && Array.isArray(res.data) ? res.data : res && Array.isArray(res.docs) ? res.docs : Array.isArray(res) ? res : [];

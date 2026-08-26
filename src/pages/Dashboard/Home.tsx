@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
-import { Venue, CustomerUser, Booking, ReportsSummaryData } from "../../types";
+import { Venue, Booking, ReportsSummaryData } from "../../types";
 import { venueApi } from "../../services/api/venueApi";
-import { customerApi } from "../../services/api/customerApi";
 import { bookingApi } from "../../services/api/bookingApi";
 import { socketService } from "../../services/api/socketService";
 import { computeReportsSummary } from "../ReportsPage";
@@ -22,7 +21,6 @@ const statusBadge: Record<string, string> = {
 
 export default function Home() {
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [customers, setCustomers] = useState<CustomerUser[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reports, setReports] = useState<ReportsSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,15 +28,11 @@ export default function Home() {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const [fetchedVenues, fetchedCustomers] = await Promise.all([
-        venueApi.getAllVenues(),
-        customerApi.getAllCustomers(),
-      ]);
+      const fetchedVenues = await venueApi.getAllVenues();
       setVenues(fetchedVenues);
-      setCustomers(fetchedCustomers);
 
-      const activeVList = fetchedVenues.filter((v) => v.isActive !== false);
-      const bookingPromises = activeVList.map((v) =>
+      const activeVList = fetchedVenues.filter((v: Venue) => v.isActive !== false);
+      const bookingPromises = activeVList.map((v: Venue) =>
         bookingApi.getVenueBookings(v._id || v.id || "")
       );
       const bookingResults = await Promise.all(bookingPromises);
@@ -90,7 +84,6 @@ export default function Home() {
 
   const today = new Date().toISOString().split("T")[0];
   const bookingsToday = bookings.filter((b) => b.date === today);
-  const activeVenues = venues.filter((v) => v.isActive !== false);
   const recentBookings = bookings.slice(0, 5);
 
   const venueBookingCount = (venueId: string) =>
@@ -104,7 +97,7 @@ export default function Home() {
       <PageMeta title="VenueOps Live Dashboard | Pitch Booking Manager" description="Live admin overview for venue booking management" />
 
       {/* ─── Hero Welcome Banner ─── */}
-      <div className="relative overflow-hidden mb-6 p-6 md:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-gray-200 dark:border-gray-700/80 shadow-xl">
+      {/* <div className="relative overflow-hidden mb-6 p-6 md:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-gray-200 dark:border-gray-700/80 shadow-xl">
         <div className="absolute right-0 top-0 bottom-0 opacity-15 pointer-events-none flex items-center">
           <svg className="w-96 h-96 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" /></svg>
         </div>
@@ -136,14 +129,14 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </div>
+      </div> */}
 
       <div className="grid grid-cols-12 gap-4 md:gap-6">
         {/* ─── Metric Cards Row ─── */}
-        <div className="col-span-12 grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="col-span-12 grid grid-cols-2 lg:grid-cols-3 gap-4">
           <StatCard icon="💰" label="Gross Revenue" value={reports ? fmt(reports.grossRevenue) : "—"} color="emerald" sub="All bookings" />
-          <StatCard icon="🏟️" label="Active Pitches" value={String(activeVenues.length)} color="blue" sub="Ready for matches" />
-          <StatCard icon="👥" label="Total Customers" value={String(customers.length)} color="purple" sub="Registered players" />
+          {/* <StatCard icon="🏟️" label="Active Pitches" value={String(activeVenues.length)} color="blue" sub="Ready for matches" />
+          <StatCard icon="👥" label="Total Customers" value={String(customers.length)} color="purple" sub="Registered players" /> */}
           <StatCard icon="📅" label="Matches Today" value={String(bookingsToday.length)} color="amber" sub="Scheduled slots" />
           <StatCard icon="📊" label="Slot Occupancy" value={reports ? `${(reports.occupancyRate * 100).toFixed(0)}%` : "—"} color="indigo" sub="Average demand" />
         </div>
@@ -170,15 +163,15 @@ export default function Home() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-750 text-xs font-bold uppercase tracking-wider text-gray-400">
+                <tr className="bg-gray-50 dark:bg-gray-800 text-xs font-bold uppercase tracking-wider text-gray-400">
                   {["Code", "Customer", "Venue", "Date", "Status", "Price"].map((h) => (
                     <th key={h} className="px-4 py-3.5">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-750 text-xs">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-xs">
                 {recentBookings.map((b) => (
-                  <tr key={b._id || b.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-750/50 transition">
+                  <tr key={b._id || b.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition">
                     <td className="px-4 py-3.5 font-mono font-bold text-blue-600 dark:text-blue-400">{b.bookingCode || (b._id || b.id).slice(0, 8)}</td>
                     <td className="px-4 py-3.5">
                       <div className="font-bold text-gray-900 dark:text-slate-100">{b.customerName}</div>
@@ -216,7 +209,7 @@ export default function Home() {
                 const count = venueBookingCount(v._id || v.id || "");
                 const pctVal = Math.min((count / 15) * 100, 100).toFixed(0);
                 return (
-                  <div key={v._id || v.id} className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-750 border border-gray-100 dark:border-gray-700">
+                  <div key={v._id || v.id} className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-bold text-gray-900 dark:text-white line-clamp-1">{v.venueName || v.name}</span>
                       <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{count} bookings</span>

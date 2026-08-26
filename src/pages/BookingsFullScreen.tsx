@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router";
+import { DoorOpen } from "lucide-react";
 import {
   Booking,
   Venue,
@@ -290,7 +291,7 @@ export default function BookingsFullScreen() {
           <div className="flex items-center gap-4">
             <Link
               to="/"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/80 hover:bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-white border border-gray-300 dark:border-gray-600/60 transition-all text-xs font-semibold group"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-white border border-gray-300 dark:border-gray-600/60 transition-all text-xs font-semibold group"
             >
               <svg className="w-4 h-4 transform group-hover:-trangray-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -299,25 +300,14 @@ export default function BookingsFullScreen() {
             </Link>
             <div className="h-5 w-px bg-gray-100 dark:bg-gray-800" />
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-                <span className="text-sm font-black">⚽</span>
-              </div>
-              <div>
                 <h1 className="text-sm font-bold text-white flex items-center gap-2">
                   Live Slot Booking Grid
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 animate-pulse">
-                    ● Live Synced
-                  </span>
                   {loading && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse">
                       Syncing slots...
                     </span>
                   )}
                 </h1>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Real-time mobile locks & gate QR verification
-                </p>
-              </div>
             </div>
           </div>
 
@@ -378,7 +368,7 @@ export default function BookingsFullScreen() {
               }}
               className="px-3.5 py-2 text-xs font-bold rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 transition-all flex items-center gap-1.5 shadow-sm"
             >
-              <span>🎟️</span> Gate Check-In
+               <DoorOpen /> Gate Check-In
             </button>
 
             <div className="flex bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md p-1 rounded-xl border border-gray-200 dark:border-gray-700/80">
@@ -414,7 +404,7 @@ export default function BookingsFullScreen() {
       {/* ─── Main Content ─── */}
       <main className="flex-1 p-6 max-w-[1920px] w-full mx-auto space-y-6">
         {errorMsg && (
-          <div className="p-4 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs font-medium flex items-center justify-between">
+          <div className="p-4 rounded-xl bg-red-900/60 border border-red-800 text-red-300 text-xs font-medium flex items-center justify-between">
             <span>⚠️ {errorMsg}</span>
             <button onClick={reloadData} className="font-bold underline ml-4 hover:opacity-80">
               Retry
@@ -424,7 +414,7 @@ export default function BookingsFullScreen() {
 
         {view === "grid" ? (
           /* ─── TIME SLOT GRID VIEW ─── */
-          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/80 bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md/60 backdrop-blur-sm overflow-hidden shadow-2xl">
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/80 bg-gray-100 dark:bg-gray-800/90 backdrop-blur-md/60 backdrop-blur-sm overflow-hidden shadow-2xl">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse min-w-[900px]">
                 <thead>
@@ -436,7 +426,7 @@ export default function BookingsFullScreen() {
                       const vId = v._id || v.id || "";
                       const sTypes = v.sportsType || v.sportsTypes || [];
                       return (
-                        <th key={vId} className="px-4 py-4 text-center border-r border-gray-200 dark:border-gray-700/80/60 min-w-[180px] last:border-r-0">
+                        <th key={vId} className="px-4 py-4 text-center border-r border-gray-200 dark:border-gray-700 min-w-[180px] last:border-r-0">
                           <div className="text-sm font-bold text-gray-800 dark:text-gray-200">{v.venueName || v.name}</div>
                           <div className="flex gap-1 justify-center mt-1.5 flex-wrap">
                             {sTypes.map((s) => (
@@ -452,7 +442,7 @@ export default function BookingsFullScreen() {
                 </thead>
                 <tbody className="divide-y divide-gray-800/60">
                   {hours.map((h) => (
-                    <tr key={h} className="group hover:bg-white dark:bg-gray-800/90/30 transition-colors">
+                    <tr key={h} className="group hover:bg-white dark:bg-gray-800 transition-colors">
                       <td className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-800/90 backdrop-blur-md px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700/80 whitespace-nowrap">
                         {pad(h)}
                       </td>
@@ -466,12 +456,12 @@ export default function BookingsFullScreen() {
                             <td
                               key={vId}
                               onClick={() => isCancelled ? undefined : setEditBooking(b)}
-                              className={`p-2.5 border-r border-gray-200 dark:border-gray-700/80/60 last:border-r-0 cursor-pointer transition-all ${
+                              className={`p-2.5 border-r border-gray-200 dark:border-gray-700 last:border-r-0 cursor-pointer transition-all ${
                                 isCancelled
-                                  ? "bg-white dark:bg-gray-800/90/20 opacity-50"
+                                  ? "bg-white dark:bg-gray-800 opacity-50"
                                   : isPending
-                                  ? "bg-amber-950/30 hover:bg-amber-950/50"
-                                  : "bg-blue-950/40 hover:bg-blue-900/50"
+                                  ? "bg-amber-900/30 hover:bg-amber-900/50"
+                                  : "bg-blue-900/40 hover:bg-blue-900/50"
                               }`}
                             >
                               <div className="p-3 rounded-xl border border-gray-300 dark:border-gray-600/60 bg-white/90 dark:bg-gray-800/90 shadow-md flex flex-col justify-between h-full">
@@ -530,7 +520,7 @@ export default function BookingsFullScreen() {
                               setNewBookingEndHour(h + 1);
                               setShowNewBooking(true);
                             }}
-                            className="p-2 border-r border-gray-200 dark:border-gray-700/80/40 last:border-r-0 hover:bg-emerald-950/10 cursor-pointer transition-colors group/slot text-center"
+                            className="p-2 border-r border-gray-200 dark:border-gray-700 last:border-r-0 hover:bg-emerald-900/10 cursor-pointer transition-colors group/slot text-center"
                           >
                             <span className="inline-block opacity-0 group-hover/slot:opacity-100 text-xs font-bold text-emerald-400 transition-opacity">
                               + Book Slot
@@ -563,7 +553,7 @@ export default function BookingsFullScreen() {
               </thead>
               <tbody className="divide-y divide-gray-800/60">
                 {filteredBookings.map((b) => (
-                  <tr key={b._id || b.id} className="hover:bg-white dark:bg-gray-800/90/40 transition">
+                  <tr key={b._id || b.id} className="hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-900 transition">
                     <td className="px-6 py-4 font-mono font-bold text-blue-400">
                       {b.bookingCode || b._id}
                     </td>
@@ -623,7 +613,6 @@ export default function BookingsFullScreen() {
       >
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">🎟️</span>
             <div>
               <h3 className="text-lg font-bold text-white">Gate Ticket Verification</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">Scan QR or enter 6-character booking code</p>
@@ -654,7 +643,7 @@ export default function BookingsFullScreen() {
           </form>
 
           {verifyError && (
-            <div className="mt-4 p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs font-medium">
+            <div className="mt-4 p-3 rounded-xl bg-red-900/60 border border-red-800 text-red-300 text-xs font-medium">
               ❌ {verifyError}
             </div>
           )}

@@ -11,6 +11,8 @@ import {
   GroupIcon,
   UserCircleIcon,
   ShootingStarIcon,
+  DollarLineIcon,
+  DocsIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 
@@ -31,6 +33,16 @@ const navItems: NavItem[] = [
     icon: <CalenderIcon />,
     name: "Booking Manager",
     path: "/bookings/fullscreen",
+  },
+  {
+    icon: <DollarLineIcon />,
+    name: "Paymob Transactions",
+    path: "/paymob-transactions",
+  },
+  {
+    icon: <DocsIcon />,
+    name: "Coupon Management",
+    path: "/coupons",
   },
   {
     icon: <PieChartIcon />,

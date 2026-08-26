@@ -289,12 +289,22 @@ export interface Payment {
   id?: string;
   bookingId: string | any;
   userId: string | any;
-  venueId: string | any;
+  venueId?: string | any;
+  groupId?: string;
   amount: number;
+  refundedAmount?: number;
   paymentMethod: string;
   status: string;
+  currency?: string;
   referenceId?: string;
   transactionId?: string;
+  paymobOrderId?: number | string;
+  paymobTransactionId?: number | string;
+  paymobAuthCode?: string;
+  paymobResponse?: any;
+  paymobOrder?: any;
+  paymobData?: any;
+  notes?: string;
   createdAt?: string;
   updatedAt?: string;
 }
