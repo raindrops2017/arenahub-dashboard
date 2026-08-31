@@ -9,7 +9,8 @@ export interface DepositPayload {
 export interface AdminDeductPayload {
   userId: string;
   amount: number;
-  reason: string;
+  reason?: string;
+  description?: string;
 }
 
 export interface QueryTransactionsParams {
@@ -83,7 +84,14 @@ export const walletApi = {
   },
 
   deductAdmin: async (data: AdminDeductPayload): Promise<Wallet> => {
-    const res = await api.post<any>("/wallet/admin/deduct", data);
+    const desc = data.description || data.reason || "Administrative deduction";
+    const payload = {
+      userId: data.userId,
+      amount: Number(data.amount),
+      description: desc,
+      reason: desc,
+    };
+    const res = await api.post<any>("/wallet/admin/deduct", payload);
     const item = res?.data || res;
     return normalizeWallet(item);
   },
@@ -91,7 +99,16 @@ export const walletApi = {
   getTransactions: async (query?: QueryTransactionsParams): Promise<WalletTransaction[]> => {
     try {
       const res = await api.get<any>("/wallet/transactions", query);
-      const docs = res && Array.isArray(res.docs) ? res.docs : Array.isArray(res) ? res : [];
+      const docs =
+        res && Array.isArray(res.docs)
+          ? res.docs
+          : res?.data && Array.isArray(res.data.docs)
+          ? res.data.docs
+          : Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
       return docs.map(normalizeTransaction);
     } catch {
       return [];

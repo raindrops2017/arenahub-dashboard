@@ -1,8 +1,50 @@
 import React, { useState, useEffect } from "react";
+import { Calendar, Clock, DollarSign, Tag, Plus, Trash2, CalendarDays, Sparkles } from "lucide-react";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
+import { ModernDatePicker } from "../ui/ModernDatePicker";
 import { Venue, SportsType, VenueStatus } from "../../types";
 import { amenitiesApi } from "../../services/api/amenitiesApi";
+
+const START_HOURS = Array.from({ length: 24 }).map((_, h) => {
+  const norm = h % 24;
+  const ampm = norm >= 12 ? "PM" : "AM";
+  const displayHour = norm % 12 === 0 ? 12 : norm % 12;
+  const formatted = `${displayHour.toString().padStart(2, "0")}:00 ${ampm}`;
+  return {
+    value: h,
+    label: `${formatted} (${h.toString().padStart(2, "0")}:00)`,
+    display: formatted,
+  };
+});
+
+const getEndHoursForStart = (startHour: number) => {
+  return Array.from({ length: 24 })
+    .map((_, i) => {
+      const h = i + 1; // 1 to 24
+      const isMidnight = h === 24;
+      const norm = h % 24;
+      const ampm = isMidnight || norm >= 12 ? "PM" : "AM";
+      const displayHour = norm % 12 === 0 ? 12 : norm % 12;
+      const formatted = isMidnight
+        ? "12:00 AM (Midnight / 24:00)"
+        : `${displayHour.toString().padStart(2, "0")}:00 ${ampm} (${h.toString().padStart(2, "0")}:00)`;
+      return {
+        value: h,
+        label: formatted,
+        display: isMidnight ? "12:00 AM (Midnight)" : `${displayHour}:00 ${ampm}`,
+      };
+    })
+    .filter((opt) => opt.value > startHour);
+};
+
+const formatTime12h = (h: number) => {
+  if (h === 24) return "12:00 AM (Midnight)";
+  const norm = h % 24;
+  const ampm = norm >= 12 ? "PM" : "AM";
+  const displayHour = norm % 12 === 0 ? 12 : norm % 12;
+  return `${displayHour}:00 ${ampm}`;
+};
 
 const ALL_SPORTS_TYPES: SportsType[] = [
   "5-A-SIDE",
@@ -41,6 +83,15 @@ interface CustomPriceItem {
   pricePerHour: number;
 }
 
+interface CustomDatePriceItem {
+  id?: string;
+  date: string;
+  startHour: number;
+  endHour: number;
+  pricePerHour: number;
+  note?: string;
+}
+
 interface VenueFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -64,6 +115,7 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
   const [defaultHourlyPrice, setDefaultHourlyPrice] = useState<number | "">(250);
   const [minimumDepositAmount, setMinimumDepositAmount] = useState<number | "">(0);
   const [customPricingRules, setCustomPricingRules] = useState<CustomPriceItem[]>([]);
+  const [customDatePricingRules, setCustomDatePricingRules] = useState<CustomDatePriceItem[]>([]);
   const [availableAmenities, setAvailableAmenities] = useState<string[]>(DEFAULT_AMENITIES);
   const [amenities, setAmenities] = useState<string[]>(["Parking", "FloodLights", "WiFi"]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -73,9 +125,16 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Rule Builder Temp State
+  // Hourly Rule Builder Temp State
   const [ruleHour, setRuleHour] = useState<number>(20);
   const [ruleRate, setRuleRate] = useState<number | "">(350);
+
+  // Date Rule Builder Temp State
+  const [dateRuleDate, setDateRuleDate] = useState<string>("");
+  const [dateRuleStartHour, setDateRuleStartHour] = useState<number>(20);
+  const [dateRuleEndHour, setDateRuleEndHour] = useState<number>(24);
+  const [dateRuleRate, setDateRuleRate] = useState<number | "">(350);
+  const [dateRuleNote, setDateRuleNote] = useState<string>("");
 
   useEffect(() => {
     if (editingVenue) {
@@ -99,6 +158,16 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
         pricePerHour: Number(r.pricePerHour ?? 300),
       }));
       setCustomPricingRules(rules);
+
+      const dateRules: CustomDatePriceItem[] = (editingVenue.customDatePrices || []).map((r: any) => ({
+        id: r.id || r._id,
+        date: typeof r.date === "string" ? r.date.split("T")[0] : new Date(r.date).toISOString().split("T")[0],
+        startHour: Number(r.startHour ?? 20),
+        endHour: Number(r.endHour ?? 24),
+        pricePerHour: Number(r.pricePerHour ?? 350),
+        note: r.note || "",
+      }));
+      setCustomDatePricingRules(dateRules);
 
       // Amenities
       if (Array.isArray(editingVenue.amenities)) {
@@ -132,6 +201,14 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
         { hour: 20, pricePerHour: 350 },
         { hour: 21, pricePerHour: 350 },
       ]);
+      setCustomDatePricingRules([]);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      setDateRuleDate(tomorrow.toISOString().split("T")[0]);
+      setDateRuleStartHour(20);
+      setDateRuleEndHour(24);
+      setDateRuleRate(350);
+      setDateRuleNote("");
       setAmenities(["Parking", "FloodLights", "WiFi", "Shower"]);
       setExistingImages([]);
       setRemovedImages([]);
@@ -198,6 +275,52 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
 
   const handleRemovePricingRule = (hour: number) => {
     setCustomPricingRules(customPricingRules.filter((r) => r.hour !== hour));
+  };
+
+  const handleAddDatePricingRule = () => {
+    if (!dateRuleDate || !/^\d{4}-\d{2}-\d{2}$/.test(dateRuleDate)) {
+      setErrorMsg("Please choose a valid date in YYYY-MM-DD format");
+      return;
+    }
+    if (dateRuleStartHour < 0 || dateRuleStartHour > 23) {
+      setErrorMsg("Start hour must be between 0 and 23");
+      return;
+    }
+    if (dateRuleEndHour <= dateRuleStartHour || dateRuleEndHour > 24) {
+      setErrorMsg("End hour must be greater than start hour and up to 24");
+      return;
+    }
+    if (!dateRuleRate || Number(dateRuleRate) <= 0) {
+      setErrorMsg("Custom date price per hour must be greater than 0");
+      return;
+    }
+
+    const newRule: CustomDatePriceItem = {
+      id: `rule_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      date: dateRuleDate,
+      startHour: Number(dateRuleStartHour),
+      endHour: Number(dateRuleEndHour),
+      pricePerHour: Number(dateRuleRate),
+      note: dateRuleNote.trim() || undefined,
+    };
+
+    setCustomDatePricingRules([
+      ...customDatePricingRules.filter(
+        (r) =>
+          !(
+            r.date === dateRuleDate &&
+            r.startHour === dateRuleStartHour &&
+            r.endHour === dateRuleEndHour
+          )
+      ),
+      newRule,
+    ]);
+    setDateRuleNote("");
+    setErrorMsg("");
+  };
+
+  const handleRemoveDatePricingRule = (index: number) => {
+    setCustomDatePricingRules(customDatePricingRules.filter((_, i) => i !== index));
   };
 
   const handleRemoveExistingImage = (indexToRemove: number) => {
@@ -268,7 +391,21 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
     });
 
     // customHourPrices as JSON array string
-    formData.append("customHourPrices", JSON.stringify(customPricingRules));
+    const sanitizedHourRules = customPricingRules.map((r) => ({
+      hour: Number(r.hour),
+      pricePerHour: Number(r.pricePerHour),
+    }));
+    formData.append("customHourPrices", JSON.stringify(sanitizedHourRules));
+
+    // customDatePrices as JSON array string
+    const sanitizedDateRules = customDatePricingRules.map((r) => ({
+      date: r.date,
+      startHour: Number(r.startHour),
+      endHour: Number(r.endHour),
+      pricePerHour: Number(r.pricePerHour),
+      note: r.note || undefined,
+    }));
+    formData.append("customDatePrices", JSON.stringify(sanitizedDateRules));
 
     // Send Kept / Remaining Existing Images to Backend
     formData.append("existingImages", JSON.stringify(existingImages));
@@ -417,8 +554,24 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
 
         {/* Operating Hours & Base Price */}
         <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 space-y-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-            ⏰ Operating Hours & Base Pricing
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+              ⏰ Operating Hours & Base Pricing
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setStartWorkingHours(0);
+                setEndWorkingHours(24);
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border ${
+                startWorkingHours === 0 && endWorkingHours === 24
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-emerald-500 hover:text-emerald-600"
+              }`}
+            >
+              ⚡ 24 Hours (Open 24/7)
+            </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -546,6 +699,189 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
                     className="text-red-500 hover:text-red-700 font-bold ml-2"
                   >
                     ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Special Date-Specific Pricing (customDatePrices) */}
+        <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <CalendarDays className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                  Special Date-Specific Pricing (customDatePrices)
+                </div>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Custom rates for specific calendar dates & time windows. Outside window, falls back to peak/default rates.
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+              {customDatePricingRules.length} Rule(s)
+            </span>
+          </div>
+
+          {/* Modern Interactive Date & Time Picker Builder */}
+          <div className="p-3.5 rounded-xl bg-gradient-to-br from-emerald-50/70 to-teal-50/30 dark:from-emerald-950/40 dark:to-teal-950/20 border border-emerald-200/80 dark:border-emerald-800/50 space-y-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-end">
+              
+              {/* Modern Date Picker */}
+              <div className="lg:col-span-3">
+                <label className="flex items-center gap-1 text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Select Date
+                </label>
+                <ModernDatePicker
+                  value={dateRuleDate}
+                  onChange={setDateRuleDate}
+                  placeholder="Pick Date"
+                />
+              </div>
+
+              {/* Modern Start Time Picker */}
+              <div className="lg:col-span-2">
+                <label className="flex items-center gap-1 text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  From (Start Time)
+                </label>
+                <select
+                  value={dateRuleStartHour}
+                  onChange={(e) => {
+                    const start = Number(e.target.value);
+                    setDateRuleStartHour(start);
+                    if (dateRuleEndHour <= start) {
+                      setDateRuleEndHour(Math.min(24, start + 1));
+                    }
+                  }}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white transition cursor-pointer shadow-xs"
+                >
+                  {START_HOURS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Modern End Time Picker */}
+              <div className="lg:col-span-2">
+                <label className="flex items-center gap-1 text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  To (End Time)
+                </label>
+                <select
+                  value={dateRuleEndHour}
+                  onChange={(e) => setDateRuleEndHour(Number(e.target.value))}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white transition cursor-pointer shadow-xs"
+                >
+                  {getEndHoursForStart(dateRuleStartHour).map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Price Per Hour Input */}
+              <div className="lg:col-span-2">
+                <label className="flex items-center gap-1 text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Price / Hr (EGP)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="350"
+                    value={dateRuleRate}
+                    onChange={(e) => setDateRuleRate(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 pr-10 text-xs font-bold text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white font-mono shadow-xs"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">
+                    EGP
+                  </span>
+                </div>
+              </div>
+
+              {/* Tag / Note */}
+              <div className="lg:col-span-2">
+                <label className="flex items-center gap-1 text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  <Tag className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Note / Tag
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Weekend Peak"
+                  value={dateRuleNote}
+                  onChange={(e) => setDateRuleNote(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-xs"
+                />
+              </div>
+
+              {/* Add Button */}
+              <div className="lg:col-span-1">
+                <button
+                  type="button"
+                  onClick={handleAddDatePricingRule}
+                  className="w-full flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-sm active:scale-[0.98]"
+                  title="Add Date Rule"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Live Preview Summary Bar */}
+            {dateRuleDate && (
+              <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>
+                  Preview: <strong>{dateRuleDate}</strong> ({formatTime12h(dateRuleStartHour)} ➔ {formatTime12h(dateRuleEndHour)}) @ <strong>{dateRuleRate || 0} EGP/hr</strong>
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Configured Rules Grid */}
+          {customDatePricingRules.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-1">
+              {customDatePricingRules.map((rule, idx) => (
+                <div
+                  key={rule.id || idx}
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-gray-900 border border-emerald-200 dark:border-emerald-800 text-xs shadow-xs hover:shadow-sm transition"
+                >
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-gray-900 dark:text-white inline-flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        {rule.date}
+                      </span>
+                      {rule.note && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 truncate max-w-[100px]">
+                          {rule.note}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-gray-500 dark:text-gray-400 flex items-center gap-1 text-[11px]">
+                      <Clock className="w-3 h-3 text-gray-400" />
+                      <span>{formatTime12h(rule.startHour)} ➔ {formatTime12h(rule.endHour)}</span>
+                      <strong className="text-emerald-600 dark:text-emerald-400 ml-1">({rule.pricePerHour} EGP)</strong>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveDatePricingRule(idx)}
+                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition ml-1 shrink-0"
+                    title="Delete rule"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))}

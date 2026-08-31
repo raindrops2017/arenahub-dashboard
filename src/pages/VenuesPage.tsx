@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router";
 import PageMeta from "../components/common/PageMeta";
 import PageBreadcrumb from "../components/common/PageBreadCrumb";
 import Badge from "../components/ui/badge/Badge";
@@ -13,7 +14,6 @@ import {
 } from "../icons";
 import { Venue, SportsType } from "../types";
 import { venueApi } from "../services/api/venueApi";
-import { VenueFormModal } from "../components/venue/VenueFormModal";
 import { DeleteVenueModal } from "../components/venue/DeleteVenueModal";
 import { VenueDetailModal } from "../components/venue/VenueDetailModal";
 
@@ -41,10 +41,6 @@ export default function VenuesPage() {
   const [sportFilter, setSportFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
-
-  // Modals state
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingVenue, setDeletingVenue] = useState<Venue | null>(null);
@@ -117,15 +113,15 @@ export default function VenuesPage() {
     };
   }, [venues]);
 
+  const navigate = useNavigate();
+
   // Actions
   const handleOpenCreate = () => {
-    setEditingVenue(null);
-    setIsFormModalOpen(true);
+    navigate("/venues/create");
   };
 
   const handleOpenEdit = (venue: Venue) => {
-    setEditingVenue(venue);
-    setIsFormModalOpen(true);
+    navigate(`/venues/edit/${venue._id || venue.id}`);
   };
 
   const handleOpenDelete = (venue: Venue) => {
@@ -136,19 +132,6 @@ export default function VenuesPage() {
   const handleOpenDetail = (venue: Venue) => {
     setViewingVenue(venue);
     setIsDetailModalOpen(true);
-  };
-
-  const handleSaveVenueSubmit = async (
-    formData: FormData,
-    isEditing: boolean,
-    venueId?: string
-  ) => {
-    if (isEditing && venueId) {
-      await venueApi.updateVenue(venueId, formData);
-    } else {
-      await venueApi.createVenue(formData);
-    }
-    await refreshVenues();
   };
 
   const handleConfirmDeleteSubmit = async (venueId: string) => {
@@ -427,7 +410,9 @@ export default function VenuesPage() {
                           WORKING HOURS
                         </span>
                         <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                          {venue.startWorkingHours}:00 - {venue.endWorkingHours}:00
+                          {venue.startWorkingHours === 0 && venue.endWorkingHours === 24
+                            ? "⚡ 24 Hours (24/7)"
+                            : `${venue.startWorkingHours}:00 - ${venue.endWorkingHours}:00`}
                         </span>
                       </div>
                     </div>
@@ -536,7 +521,13 @@ export default function VenuesPage() {
                         </td>
 
                         <td className="px-6 py-4 text-xs text-gray-700 dark:text-gray-300">
-                          {venue.startWorkingHours}:00 - {venue.endWorkingHours}:00
+                          {venue.startWorkingHours === 0 && venue.endWorkingHours === 24 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              ⚡ 24 Hours (24/7)
+                            </span>
+                          ) : (
+                            `${venue.startWorkingHours}:00 - ${venue.endWorkingHours}:00`
+                          )}
                         </td>
 
                         <td className="px-6 py-4">
@@ -586,14 +577,6 @@ export default function VenuesPage() {
           </div>
         )}
       </div>
-
-      {/* Form Modal (Create / Edit) */}
-      <VenueFormModal
-        isOpen={isFormModalOpen}
-        onClose={() => setIsFormModalOpen(false)}
-        editingVenue={editingVenue}
-        onSave={handleSaveVenueSubmit}
-      />
 
       {/* Delete Confirmation Modal */}
       <DeleteVenueModal

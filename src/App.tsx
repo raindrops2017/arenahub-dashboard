@@ -21,6 +21,7 @@ import Home from "./pages/Dashboard/Home";
 import UsersPage from "./pages/UsersPage";
 import CustomersPage from "./pages/CustomersPage";
 import VenuesPage from "./pages/VenuesPage";
+import VenueCreateEditPage from "./pages/VenueCreateEditPage";
 import BookingsFullScreen from "./pages/BookingsFullScreen";
 import ReportsPage from "./pages/ReportsPage";
 import AdBannersPage from "./pages/AdBannersPage";
@@ -47,6 +48,8 @@ export default function App() {
             <Route path="/users" element={<UsersPage />} />
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/venues" element={<VenuesPage />} />
+            <Route path="/venues/create" element={<VenueCreateEditPage />} />
+            <Route path="/venues/edit/:id" element={<VenueCreateEditPage />} />
             <Route path="/paymob-transactions" element={<PaymobTransactionsPage />} />
             <Route path="/coupons" element={<CouponsPage />} />
             <Route path="/reports" element={<ReportsPage />} />

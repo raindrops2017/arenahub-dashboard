@@ -20,7 +20,6 @@ import { bookingApi } from "../services/api/bookingApi";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<CustomerUser[]>([]);
-  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusTab, setStatusTab] = useState<string>("ALL");
@@ -30,8 +29,18 @@ export default function CustomersPage() {
   const [drawerTab, setDrawerTab] = useState<"OVERVIEW" | "WALLET" | "BOOKINGS">("OVERVIEW");
   const [drawerBookings, setDrawerBookings] = useState<Booking[]>([]);
   const [loadingDrawerBookings, setLoadingDrawerBookings] = useState<boolean>(false);
+  const [drawerTransactions, setDrawerTransactions] = useState<WalletTransaction[]>([]);
+  const [loadingDrawerTransactions, setLoadingDrawerTransactions] = useState<boolean>(false);
 
-  // Customer Form Modal State (Edit)
+  // Status Change Modal State
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [statusModalCustomer, setStatusModalCustomer] = useState<CustomerUser | null>(null);
+  const [selectedNewStatus, setSelectedNewStatus] = useState<CustomerStatus>("Active");
+  const [statusReasonInput, setStatusReasonInput] = useState("");
+  const [statusModalError, setStatusModalError] = useState("");
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+  // Customer Form Modal State (Edit Profile)
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerUser | null>(null);
   const [customerFormData, setCustomerFormData] = useState({
@@ -62,30 +71,81 @@ export default function CustomersPage() {
   const [depositSuccess, setDepositSuccess] = useState("");
   const [isProcessingDeposit, setIsProcessingDeposit] = useState(false);
 
+  // Refresh customer directory
   const refreshData = useCallback(async () => {
     setLoading(true);
     try {
       const custs = await customerApi.getAllCustomers();
       setCustomers(custs);
 
-      const txs = await walletApi.getTransactions();
-      setTransactions(txs);
-
-      // Update active drawer customer if open
-      if (drawerCustomer) {
-        const updated = custs.find((c) => (c._id || c.id) === (drawerCustomer._id || drawerCustomer.id));
-        if (updated) setDrawerCustomer(updated);
-      }
+      // Keep active drawer customer in sync without triggering infinite re-render loop
+      setDrawerCustomer((prev) => {
+        if (!prev) return null;
+        const updated = custs.find((c) => (c._id || c.id) === (prev._id || prev.id));
+        return updated || prev;
+      });
     } catch (err) {
       console.error("Error fetching live customers:", err);
     } finally {
       setLoading(false);
     }
-  }, [drawerCustomer]);
+  }, []);
 
   useEffect(() => {
     refreshData();
   }, [refreshData]);
+
+  // Open Status Changer Modal
+  const handleOpenStatusModal = (cust: CustomerUser) => {
+    setStatusModalCustomer(cust);
+    setSelectedNewStatus(cust.status || "Active");
+    setStatusReasonInput(cust.statusReason || "");
+    setStatusModalError("");
+    setIsStatusModalOpen(true);
+  };
+
+  // Submit Status Change
+  const handleSaveStatusChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!statusModalCustomer) return;
+
+    if (
+      (selectedNewStatus === "On Hold" || selectedNewStatus === "Suspended") &&
+      !statusReasonInput.trim()
+    ) {
+      setStatusModalError("A reason is required when placing an account On Hold or Suspended.");
+      return;
+    }
+
+    setIsUpdatingStatus(true);
+    setStatusModalError("");
+    try {
+      const cId = statusModalCustomer._id || statusModalCustomer.id || "";
+      const updated = await customerApi.updateCustomerUser(cId, {
+        status: selectedNewStatus,
+        statusReason: statusReasonInput.trim(),
+      });
+
+      // Update customers local state
+      setCustomers((prev) =>
+        prev.map((c) => ((c._id || c.id) === cId ? { ...c, ...updated } : c))
+      );
+
+      // If drawer is viewing this customer, update drawer state
+      setDrawerCustomer((prev) => {
+        if (prev && (prev._id || prev.id) === cId) {
+          return { ...prev, ...updated };
+        }
+        return prev;
+      });
+
+      setIsStatusModalOpen(false);
+    } catch (err: any) {
+      setStatusModalError(err.message || "Failed to update account status.");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   // Handle Customer Modal Open (Edit)
   const handleOpenEditModal = (cust: CustomerUser) => {
@@ -159,15 +219,22 @@ export default function CustomersPage() {
     setIsProcessingPayout(true);
     setPayoutError("");
     try {
+      const cId = payoutCustomer._id || payoutCustomer.id || "";
       await walletApi.deductAdmin({
-        userId: payoutCustomer._id || payoutCustomer.id || "",
+        userId: cId,
         amount: amountNum,
+        description: payoutNote.trim(),
         reason: payoutNote.trim(),
       });
       setPayoutSuccess(`Successfully deducted ${amountNum.toFixed(2)} EGP from ${payoutCustomer.userName || payoutCustomer.name}.`);
       setPayoutAmount("");
       setPayoutNote("");
       await refreshData();
+
+      // Refresh drawer transactions if open
+      if (drawerCustomer && (drawerCustomer._id || drawerCustomer.id) === cId) {
+        loadDrawerCustomerTransactions(cId);
+      }
 
       setTimeout(() => {
         setIsPayoutModalOpen(false);
@@ -203,13 +270,19 @@ export default function CustomersPage() {
     setIsProcessingDeposit(true);
     setDepositError("");
     try {
+      const cId = depositCustomer._id || depositCustomer.id || "";
       await walletApi.depositWallet({
-        userId: depositCustomer._id || depositCustomer.id || "",
+        userId: cId,
         amount: amountNum,
       });
       setDepositSuccess(`Successfully deposited ${amountNum.toFixed(2)} EGP into ${depositCustomer.userName || depositCustomer.name}'s wallet.`);
       setDepositAmount("");
       await refreshData();
+
+      // Refresh drawer transactions if open
+      if (drawerCustomer && (drawerCustomer._id || drawerCustomer.id) === cId) {
+        loadDrawerCustomerTransactions(cId);
+      }
 
       setTimeout(() => {
         setIsDepositModalOpen(false);
@@ -222,6 +295,44 @@ export default function CustomersPage() {
     }
   };
 
+  // Fetch transactions specifically for drawer customer
+  const loadDrawerCustomerTransactions = async (cId: string) => {
+    setLoadingDrawerTransactions(true);
+    try {
+      const txs = await walletApi.getTransactions({ userId: cId });
+      setDrawerTransactions(txs || []);
+    } catch (err) {
+      console.error("Failed to load customer transactions:", err);
+      setDrawerTransactions([]);
+    } finally {
+      setLoadingDrawerTransactions(false);
+    }
+  };
+
+  // Open Customer Drawer with live bookings & transactions fetch
+  const handleOpenDrawer = (
+    cust: CustomerUser,
+    initialTab: "OVERVIEW" | "WALLET" | "BOOKINGS" = "OVERVIEW"
+  ) => {
+    setDrawerCustomer(cust);
+    setDrawerTab(initialTab);
+    const cId = cust._id || cust.id || "";
+
+    // Load Bookings
+    setLoadingDrawerBookings(true);
+    bookingApi
+      .getCustomerBookings(cId)
+      .then((bList) => setDrawerBookings(bList || []))
+      .catch((err) => {
+        console.error("Failed to load customer bookings:", err);
+        setDrawerBookings([]);
+      })
+      .finally(() => setLoadingDrawerBookings(false));
+
+    // Load Transactions
+    loadDrawerCustomerTransactions(cId);
+  };
+
   // Filter Customers
   const filteredCustomers = customers.filter((c) => {
     const q = searchQuery.toLowerCase();
@@ -230,7 +341,14 @@ export default function CustomersPage() {
     const email = (c.email || "").toLowerCase();
     const matchesSearch = name.includes(q) || phone.includes(q) || email.includes(q);
 
-    const matchesStatus = statusTab === "ALL" || (c.status || "Active") === statusTab;
+    const cStatus = c.status || "Active";
+    let matchesStatus = true;
+    if (statusTab === "ALL") {
+      // By default, ALL shows active, on hold, and suspended (excludes archived unless explicitly selected)
+      matchesStatus = cStatus !== "Archived" && cStatus !== "Inactive";
+    } else {
+      matchesStatus = cStatus === statusTab;
+    }
 
     return matchesSearch && matchesStatus;
   });
@@ -239,6 +357,8 @@ export default function CustomersPage() {
   const totalCustomersCount = customers.length;
   const activeCustomersCount = customers.filter((c) => c.status === "Active" || !c.status).length;
   const onHoldCount = customers.filter((c) => c.status === "On Hold").length;
+  const suspendedCount = customers.filter((c) => c.status === "Suspended").length;
+  const archivedCount = customers.filter((c) => c.status === "Archived" || c.status === "Inactive").length;
   const totalWalletPool = customers.reduce((sum, c) => sum + (c.walletBalance || 0), 0);
 
   const getStatusBadgeColor = (status?: CustomerStatus) => {
@@ -249,39 +369,11 @@ export default function CustomersPage() {
         return "warning";
       case "Suspended":
         return "error";
+      case "Archived":
       case "Inactive":
         return "light";
       default:
         return "success";
-    }
-  };
-
-  // Transaction history for drawer customer
-  const drawerTransactions = drawerCustomer
-    ? transactions.filter(
-        (t) =>
-          t.userId === (drawerCustomer._id || drawerCustomer.id) ||
-          t.customerId === (drawerCustomer._id || drawerCustomer.id)
-      )
-    : [];
-
-  // Open Customer Drawer with live bookings fetch
-  const handleOpenDrawer = async (
-    cust: CustomerUser,
-    initialTab: "OVERVIEW" | "WALLET" | "BOOKINGS" = "OVERVIEW"
-  ) => {
-    setDrawerCustomer(cust);
-    setDrawerTab(initialTab);
-    setLoadingDrawerBookings(true);
-    try {
-      const cId = cust._id || cust.id || "";
-      const bList = await bookingApi.getCustomerBookings(cId);
-      setDrawerBookings(bList || []);
-    } catch (err) {
-      console.error("Failed to load customer bookings:", err);
-      setDrawerBookings([]);
-    } finally {
-      setLoadingDrawerBookings(false);
     }
   };
 
@@ -319,10 +411,10 @@ export default function CustomersPage() {
   return (
     <>
       <PageMeta
-        title="Customer Management & Digital Wallets | VenueOps"
-        description="Live customer profile management, digital wallet balance top-ups, and admin cash payouts."
+        title="Customer Directory & Digital Wallets | VenueOps"
+        description="Live customer profile management, status controls, digital wallet balance top-ups, and audit ledger."
       />
-      <PageBreadcrumb pageTitle="Customer Management" />
+      <PageBreadcrumb pageTitle="Customer Directory & Wallets" />
 
       <div className="space-y-6">
         {/* Header Bar */}
@@ -333,11 +425,11 @@ export default function CustomersPage() {
                 Customer Directory & Wallets
               </h2>
               <Badge color="primary" size="md">
-                {totalCustomersCount} Live Customers
+                {totalCustomersCount} Registered Players
               </Badge>
             </div>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Live customer accounts with direct digital wallet balance management, admin deposits, and audit deductions.
+              Manage player accounts, enforce account statuses (Active, On Hold, Suspended, Archived) with reason tracking, and handle digital wallet ledgers.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -348,11 +440,11 @@ export default function CustomersPage() {
         </div>
 
         {/* Summary Metrics Cards Grid */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                Total Customers
+                Total Players
               </span>
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
                 <UserIcon className="h-5 w-5" />
@@ -362,7 +454,7 @@ export default function CustomersPage() {
               {totalCustomersCount}
             </div>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Registered mobile platform players
+              Registered customer accounts
             </p>
           </div>
 
@@ -379,7 +471,7 @@ export default function CustomersPage() {
               {activeCustomersCount}
             </div>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Eligible for instant slot locks
+              Full booking & platform access
             </p>
           </div>
 
@@ -396,7 +488,24 @@ export default function CustomersPage() {
               {onHoldCount}
             </div>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Pending mobile verification
+              Warned on app & gate check-in
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                Suspended / Archived
+              </span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-500 dark:bg-red-500/15 dark:text-red-400">
+                <CloseIcon className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-3 text-2xl font-bold text-red-600 dark:text-red-400 font-mono">
+              {suspendedCount + archivedCount}
+            </div>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {suspendedCount} Suspended • {archivedCount} Archived
             </p>
           </div>
 
@@ -413,7 +522,7 @@ export default function CustomersPage() {
               {totalWalletPool.toLocaleString(undefined, { minimumFractionDigits: 2 })} EGP
             </div>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Circulating customer balances
+              Circulating player balances
             </p>
           </div>
         </div>
@@ -422,7 +531,7 @@ export default function CustomersPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative flex-1 min-w-[240px]">
               <input
                 type="text"
                 placeholder="Search customers by name, phone, or email..."
@@ -432,18 +541,22 @@ export default function CustomersPage() {
               />
             </div>
 
-            {/* Status Filter */}
-            <select
-              value={statusTab}
-              onChange={(e) => setStatusTab(e.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="On Hold">On Hold</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+            {/* Status Filter Tabs */}
+            <div className="flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl gap-1">
+              {["ALL", "Active", "On Hold", "Suspended", "Archived"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setStatusTab(tab)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    statusTab === tab
+                      ? "bg-white text-brand-600 shadow-xs dark:bg-gray-800 dark:text-white"
+                      : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  }`}
+                >
+                  {tab === "ALL" ? "All Active" : tab}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -457,98 +570,230 @@ export default function CustomersPage() {
                   <th className="px-6 py-4">Phone Number</th>
                   <th className="px-6 py-4">Position</th>
                   <th className="px-6 py-4">Wallet Balance</th>
-                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Status & Reason</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                {filteredCustomers.map((customer) => {
-                  const cId = customer._id || customer.id || "";
-                  const cName = customer.userName || customer.name || "Customer";
-                  return (
-                    <tr key={cId} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40">
-                      <td className="px-6 py-4 cursor-pointer" onClick={() => handleOpenDrawer(customer)}>
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={customer.avatar || customer.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
-                            alt={cName}
-                            className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-gray-800 shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
-                            }}
-                          />
-                          <div>
-                            <p className="font-bold text-gray-900 dark:text-white hover:text-brand-600 transition">
-                              {cName}
-                            </p>
-                            <span className="text-xs text-gray-400">
-                              {customer.email || "No email"}
-                            </span>
+                {filteredCustomers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">
+                      No customers match your filter or search criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCustomers.map((customer) => {
+                    const cId = customer._id || customer.id || "";
+                    const cName = customer.userName || customer.name || "Customer";
+                    const cStatus = customer.status || "Active";
+                    const isWarned = cStatus === "On Hold" || cStatus === "Suspended";
+
+                    return (
+                      <tr key={cId} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition">
+                        <td className="px-6 py-4 cursor-pointer" onClick={() => handleOpenDrawer(customer)}>
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={customer.avatar || customer.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
+                              alt={cName}
+                              className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-gray-800 shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
+                              }}
+                            />
+                            <div>
+                              <p className="font-bold text-gray-900 dark:text-white hover:text-brand-600 transition">
+                                {cName}
+                              </p>
+                              <span className="text-xs text-gray-400">
+                                {customer.email || "No email"}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="px-6 py-4 font-mono text-xs text-gray-700 dark:text-gray-300">
-                        {customer.phone || "—"}
-                      </td>
+                        <td className="px-6 py-4 font-mono text-xs text-gray-700 dark:text-gray-300">
+                          {customer.phone || "—"}
+                        </td>
 
-                      <td className="px-6 py-4 text-xs font-medium text-gray-700 dark:text-gray-300">
-                        ⚽ {customer.position || customer.favoritePosition || "Midfielder"}
-                      </td>
+                        <td className="px-6 py-4 text-xs font-medium text-gray-700 dark:text-gray-300">
+                          ⚽ {customer.position || customer.favoritePosition || "Midfielder"}
+                        </td>
 
-                      <td className="px-6 py-4">
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm font-mono">
-                          {Number(customer.walletBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} EGP
-                        </span>
-                      </td>
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm font-mono">
+                            {Number(customer.walletBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} EGP
+                          </span>
+                        </td>
 
-                      <td className="px-6 py-4">
-                        <Badge color={getStatusBadgeColor(customer.status)} size="sm">
-                          {customer.status || "Active"}
-                        </Badge>
-                      </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1 items-start">
+                            <button
+                              onClick={() => handleOpenStatusModal(customer)}
+                              className="flex items-center gap-1.5 group cursor-pointer"
+                              title="Click to change account status"
+                            >
+                              <Badge color={getStatusBadgeColor(cStatus)} size="sm">
+                                {cStatus}
+                              </Badge>
+                              <span className="text-[10px] text-gray-400 group-hover:text-brand-600 transition">
+                                ✎
+                              </span>
+                            </button>
+                            {isWarned && customer.statusReason && (
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 italic max-w-[220px] truncate" title={customer.statusReason}>
+                                💬 {customer.statusReason}
+                              </p>
+                            )}
+                          </div>
+                        </td>
 
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleOpenDepositModal(customer)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 transition"
-                            title="Top-Up Wallet Deposit"
-                          >
-                            + Deposit
-                          </button>
-                          <button
-                            onClick={() => handleOpenPayoutModal(customer)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 transition"
-                            title="Admin Deduction"
-                          >
-                            - Deduct
-                          </button>
-                          <button
-                            onClick={() => handleOpenDrawer(customer)}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                            title="View Customer Profile & History"
-                          >
-                            <EyeIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenEditModal(customer)}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                            title="Edit Profile"
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpenStatusModal(customer)}
+                              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 transition"
+                              title="Change Status & Reason"
+                            >
+                              🛡️ Status
+                            </button>
+                            <button
+                              onClick={() => handleOpenDepositModal(customer)}
+                              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 transition"
+                              title="Top-Up Wallet Deposit"
+                            >
+                              + Deposit
+                            </button>
+                            <button
+                              onClick={() => handleOpenPayoutModal(customer)}
+                              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 transition"
+                              title="Admin Deduction"
+                            >
+                              - Deduct
+                            </button>
+                            <button
+                              onClick={() => handleOpenDrawer(customer)}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                              title="View Customer Profile & History"
+                            >
+                              <EyeIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditModal(customer)}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                              title="Edit Profile"
+                            >
+                              <PencilIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
+      {/* ─── STATUS CHANGER MODAL ─── */}
+      <Modal
+        isOpen={isStatusModalOpen}
+        onClose={() => setIsStatusModalOpen(false)}
+        className="max-w-md p-6 bg-white dark:bg-gray-800/90 backdrop-blur-md"
+      >
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Update Customer Account Status
+            </h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            Manage account status for <strong className="text-gray-800 dark:text-gray-200">{statusModalCustomer?.userName || statusModalCustomer?.name}</strong>.
+          </p>
+
+          {statusModalError && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-medium">
+              {statusModalError}
+            </div>
+          )}
+
+          <form onSubmit={handleSaveStatusChange} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-700 dark:text-gray-300 mb-2">
+                Account Status
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: "Active", label: "Active", desc: "Full normal booking & app access", color: "border-emerald-500 text-emerald-600 bg-emerald-50/30" },
+                  { id: "On Hold", label: "On Hold", desc: "Bookings allowed with app & gate warning", color: "border-amber-500 text-amber-600 bg-amber-50/30" },
+                  { id: "Suspended", label: "Suspended", desc: "Blocked from booking & pitches feed", color: "border-red-500 text-red-600 bg-red-50/30" },
+                  { id: "Archived", label: "Archived", desc: "Archived account, cannot create bookings", color: "border-gray-400 text-gray-600 bg-gray-50/30" },
+                ].map((s) => {
+                  const isSelected = selectedNewStatus === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSelectedNewStatus(s.id as CustomerStatus)}
+                      className={`p-3 rounded-xl border text-left transition ${
+                        isSelected
+                          ? `border-2 ${s.color} shadow-xs font-bold`
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      }`}
+                    >
+                      <div className="text-xs font-bold">{s.label}</div>
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">
+                        {s.desc}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-700 dark:text-gray-300 mb-1.5">
+                Status Reason / Audit Note{" "}
+                {(selectedNewStatus === "On Hold" || selectedNewStatus === "Suspended") && (
+                  <span className="text-red-500">* (Mandatory)</span>
+                )}
+              </label>
+              <textarea
+                rows={3}
+                required={selectedNewStatus === "On Hold" || selectedNewStatus === "Suspended"}
+                value={statusReasonInput}
+                onChange={(e) => setStatusReasonInput(e.target.value)}
+                placeholder={
+                  selectedNewStatus === "Suspended"
+                    ? "e.g. Multiple booking no-shows without cancellation payment."
+                    : selectedNewStatus === "On Hold"
+                    ? "e.g. Pending ID / contact verification or payment settlement."
+                    : "Optional note or reason..."
+                }
+                className="w-full rounded-lg border border-gray-300 bg-white p-3 text-xs text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              />
+              <p className="mt-1 text-[11px] text-gray-400">
+                This reason will be visible as an alert in the customer mobile app and to the pitch gate staff.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/80">
+              <button
+                type="button"
+                onClick={() => setIsStatusModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+              >
+                Cancel
+              </button>
+              <Button size="sm" type="submit" disabled={isUpdatingStatus}>
+                {isUpdatingStatus ? "Updating..." : "Save Status"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Modal>
 
       {/* ─── WALLET DEPOSIT MODAL ─── */}
       <Modal
@@ -760,10 +1005,16 @@ export default function CustomersPage() {
         </div>
       </Modal>
 
-      {/* ─── REACTIVATED 3-TAB SLIDE-OVER CUSTOMER DRAWER ─── */}
+      {/* ─── SLIDE-OVER CUSTOMER DRAWER ─── */}
       {drawerCustomer && (
-        <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-sm flex justify-end">
-          <div className="w-full max-w-lg bg-white dark:bg-gray-800/95 backdrop-blur-md h-full p-6 shadow-2xl overflow-y-auto flex flex-col justify-between">
+        <div
+          className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-sm flex justify-end"
+          onClick={() => setDrawerCustomer(null)}
+        >
+          <div
+            className="w-full max-w-lg bg-white dark:bg-gray-800/95 backdrop-blur-md h-full p-6 shadow-2xl overflow-y-auto flex flex-col justify-between"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div>
               {/* Drawer Top Header */}
               <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700/80">
@@ -781,9 +1032,15 @@ export default function CustomersPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge color={getStatusBadgeColor(drawerCustomer.status)} size="sm">
-                    {drawerCustomer.status || "Active"}
-                  </Badge>
+                  <button
+                    onClick={() => handleOpenStatusModal(drawerCustomer)}
+                    className="cursor-pointer"
+                    title="Change Status"
+                  >
+                    <Badge color={getStatusBadgeColor(drawerCustomer.status)} size="sm">
+                      {drawerCustomer.status || "Active"} ✎
+                    </Badge>
+                  </button>
                   <button
                     onClick={() => setDrawerCustomer(null)}
                     className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
@@ -792,6 +1049,39 @@ export default function CustomersPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Status Notice Banner (if On Hold or Suspended) */}
+              {(drawerCustomer.status === "On Hold" || drawerCustomer.status === "Suspended") && (
+                <div
+                  className={`my-3 p-3 rounded-xl border flex items-start gap-3 ${
+                    drawerCustomer.status === "Suspended"
+                      ? "bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800/60 text-red-800 dark:text-red-300"
+                      : "bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800/60 text-amber-800 dark:text-amber-300"
+                  }`}
+                >
+                  <span className="text-lg">⚠️</span>
+                  <div className="flex-1 text-xs">
+                    <div className="font-bold uppercase tracking-wider">
+                      Account Status: {drawerCustomer.status}
+                    </div>
+                    {drawerCustomer.statusReason ? (
+                      <p className="mt-0.5 text-[11px] font-medium">
+                        Reason: {drawerCustomer.statusReason}
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-[11px]">
+                        No reason specified by administration.
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleOpenStatusModal(drawerCustomer)}
+                    className="text-[11px] font-bold underline shrink-0 hover:opacity-80"
+                  >
+                    Change Status
+                  </button>
+                </div>
+              )}
 
               {/* 3-Tab Navigator */}
               <div className="my-4 flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
@@ -857,6 +1147,22 @@ export default function CustomersPage() {
                       Account Details
                     </h4>
                     <div className="flex justify-between">
+                      <span className="text-gray-400">Status:</span>
+                      <span className="font-bold">
+                        <Badge color={getStatusBadgeColor(drawerCustomer.status)} size="sm">
+                          {drawerCustomer.status || "Active"}
+                        </Badge>
+                      </span>
+                    </div>
+                    {drawerCustomer.statusReason && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Status Reason:</span>
+                        <span className="font-medium text-amber-600 dark:text-amber-400 max-w-[240px] text-right">
+                          {drawerCustomer.statusReason}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
                       <span className="text-gray-400">Email Address:</span>
                       <span className="font-bold text-gray-900 dark:text-white">{drawerCustomer.email || "—"}</span>
                     </div>
@@ -876,18 +1182,24 @@ export default function CustomersPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => handleOpenStatusModal(drawerCustomer)}
+                      className="py-2.5 rounded-xl bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 font-bold text-xs hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                    >
+                      🛡️ Status
+                    </button>
                     <button
                       onClick={() => handleOpenEditModal(drawerCustomer)}
-                      className="flex-1 py-2.5 rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-400 font-bold text-xs hover:bg-brand-100 transition"
+                      className="py-2.5 rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/40 dark:text-brand-400 font-bold text-xs hover:bg-brand-100 transition"
                     >
-                      ✏️ Edit Profile
+                      ✏️ Edit
                     </button>
                     <button
                       onClick={() => setDrawerTab("WALLET")}
-                      className="flex-1 py-2.5 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 font-bold text-xs hover:bg-emerald-100 transition"
+                      className="py-2.5 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 font-bold text-xs hover:bg-emerald-100 transition"
                     >
-                      💳 Manage Wallet
+                      💳 Wallet
                     </button>
                   </div>
                 </div>
@@ -909,13 +1221,13 @@ export default function CustomersPage() {
                     <div className="flex flex-col gap-1.5">
                       <button
                         onClick={() => handleOpenDepositModal(drawerCustomer)}
-                        className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow-sm"
+                        className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow-sm transition"
                       >
                         + Deposit
                       </button>
                       <button
                         onClick={() => handleOpenPayoutModal(drawerCustomer)}
-                        className="px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 shadow-sm"
+                        className="px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 shadow-sm transition"
                       >
                         - Deduct
                       </button>
@@ -924,15 +1236,26 @@ export default function CustomersPage() {
 
                   {/* Transaction Ledger */}
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
-                      Wallet Transaction History
-                    </h4>
-                    {drawerTransactions.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-6">
-                        No transactions recorded for this customer.
-                      </p>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        Customer Ledger ({drawerTransactions.length})
+                      </h4>
+                      <button
+                        onClick={() => loadDrawerCustomerTransactions(drawerCustomer._id || drawerCustomer.id || "")}
+                        className="text-xs text-brand-600 hover:underline font-bold"
+                      >
+                        🔄 Refresh
+                      </button>
+                    </div>
+
+                    {loadingDrawerTransactions ? (
+                      <p className="text-xs text-gray-400 text-center py-6">Loading transaction ledger...</p>
+                    ) : drawerTransactions.length === 0 ? (
+                      <div className="p-6 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 text-center">
+                        <p className="text-xs text-gray-400">No wallet transactions recorded for this customer.</p>
+                      </div>
                     ) : (
-                      <div className="space-y-2.5">
+                      <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
                         {drawerTransactions.map((t) => (
                           <div
                             key={t._id || t.id}
@@ -1041,6 +1364,3 @@ export default function CustomersPage() {
     </>
   );
 }
-
-
-

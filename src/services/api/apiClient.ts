@@ -76,14 +76,25 @@ export class ApiError extends Error {
 }
 
 let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
+let refreshSubscribers: Array<{
+  resolve: (token: string) => void;
+  reject: (err: any) => void;
+}> = [];
 
-function subscribeTokenRefresh(cb: (token: string) => void) {
-  refreshSubscribers.push(cb);
+function subscribeTokenRefresh(
+  resolve: (token: string) => void,
+  reject: (err: any) => void
+) {
+  refreshSubscribers.push({ resolve, reject });
 }
 
 function onRefreshed(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers.forEach((sub) => sub.resolve(token));
+  refreshSubscribers = [];
+}
+
+function onRefreshFailed(err: any) {
+  refreshSubscribers.forEach((sub) => sub.reject(err));
   refreshSubscribers = [];
 }
 
@@ -147,8 +158,8 @@ export async function apiClient<T = any>(
             body: JSON.stringify({ refreshToken }),
           });
           const refreshData = await refreshRes.json();
-          const newAccessToken = refreshData?.data?.accessToken;
-          const newRefreshToken = refreshData?.data?.refreshToken;
+          const newAccessToken = refreshData?.data?.accessToken || refreshData?.accessToken;
+          const newRefreshToken = refreshData?.data?.refreshToken || refreshData?.refreshToken;
 
           if (newAccessToken) {
             setStoredTokens(newAccessToken, newRefreshToken);
@@ -168,37 +179,46 @@ export async function apiClient<T = any>(
             }
           } else {
             isRefreshing = false;
+            const err = new ApiError("Failed to refresh token", 401, refreshData);
+            onRefreshFailed(err);
             removeStoredToken();
           }
-        } catch {
+        } catch (refreshErr) {
           isRefreshing = false;
+          onRefreshFailed(refreshErr);
           removeStoredToken();
         }
       } else {
         return new Promise<T>((resolve, reject) => {
-          subscribeTokenRefresh(async (newToken) => {
-            try {
-              reqHeaders.Authorization = `Bearer ${newToken}`;
-              const retryRes = await fetch(url, { ...restOptions, headers: reqHeaders });
-              const retryIsJson = retryRes.headers.get("content-type")?.includes("application/json");
-              const retryBody = retryIsJson ? await retryRes.json() : await retryRes.text();
-              if (retryRes.ok) {
-                if (retryBody && typeof retryBody === "object" && "data" in retryBody && "success" in retryBody) {
-                  resolve(retryBody.data as T);
+          subscribeTokenRefresh(
+            async (newToken) => {
+              try {
+                reqHeaders.Authorization = `Bearer ${newToken}`;
+                const retryRes = await fetch(url, { ...restOptions, headers: reqHeaders });
+                const retryIsJson = retryRes.headers.get("content-type")?.includes("application/json");
+                const retryBody = retryIsJson ? await retryRes.json() : await retryRes.text();
+                if (retryRes.ok) {
+                  if (retryBody && typeof retryBody === "object" && "data" in retryBody && "success" in retryBody) {
+                    resolve(retryBody.data as T);
+                  } else {
+                    resolve(retryBody as T);
+                  }
                 } else {
-                  resolve(retryBody as T);
+                  reject(new ApiError("Retry failed", retryRes.status, retryBody));
                 }
-              } else {
-                reject(new ApiError("Retry failed", retryRes.status, retryBody));
+              } catch (e) {
+                reject(e);
               }
-            } catch (e) {
-              reject(e);
+            },
+            (err) => {
+              reject(err);
             }
-          });
+          );
         });
       }
     }
   }
+
 
   let responseBody: any;
   const contentType = response.headers.get("content-type");

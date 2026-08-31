@@ -40,6 +40,16 @@ export interface CustomHourPrice {
   pricePerHour: number;
 }
 
+export interface CustomDatePrice {
+  id?: string;
+  _id?: string;
+  date: string; // ISO String format YYYY-MM-DD
+  startHour: number; // 0 - 23
+  endHour: number; // 1 - 24
+  pricePerHour: number;
+  note?: string;
+}
+
 export type CustomPricingRate = CustomHourPrice & {
   id?: string;
   label?: string;
@@ -94,6 +104,7 @@ export interface Venue {
   removedImages?: string[];
   deleteImages?: string[];
   customHourPrices?: CustomHourPrice[];
+  customDatePrices?: CustomDatePrice[];
   customHourlyPrices?: CustomPricingRate[]; // UI alias
   isActive: boolean;
   status?: VenueStatus; // UI alias
@@ -109,7 +120,7 @@ export interface Venue {
   updatedAt?: string;
 }
 
-export type CustomerStatus = 'Active' | 'On Hold' | 'Suspended' | 'Inactive';
+export type CustomerStatus = 'Active' | 'On Hold' | 'Suspended' | 'Archived' | 'Inactive';
 
 export interface CustomerUser {
   _id: string;
@@ -125,7 +136,9 @@ export interface CustomerUser {
   walletBalance: number;
   provider?: 'system' | 'google' | string;
   emailConfirmed?: boolean;
-  status?: CustomerStatus; // UI alias
+  status?: CustomerStatus;
+  statusReason?: string;
+  statusUpdatedAt?: string;
   walletId?: string; // UI alias
   createdAt?: string;
   updatedAt?: string;

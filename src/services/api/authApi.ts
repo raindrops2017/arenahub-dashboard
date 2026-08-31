@@ -1,4 +1,5 @@
-import api, { setStoredTokens, setStoredUser, removeStoredToken } from "./apiClient";
+import api, { setStoredTokens, setStoredUser, removeStoredToken, getStoredRefreshToken } from "./apiClient";
+
 import { AdminUser } from "../../types";
 
 export interface LoginPayload {
@@ -66,9 +67,17 @@ export const authApi = {
     return api.post<AdminUser>("/auth/dashboard/users", payload);
   },
 
-  logout: () => {
-    removeStoredToken();
+  logout: async () => {
+    try {
+      const refreshToken = getStoredRefreshToken();
+      await api.post("/auth/logout", { refreshToken: refreshToken || undefined });
+    } catch (err) {
+      console.warn("[authApi] Dashboard server logout failed:", err);
+    } finally {
+      removeStoredToken();
+    }
   },
 };
 
 export default authApi;
+

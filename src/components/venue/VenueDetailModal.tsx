@@ -24,6 +24,7 @@ export const VenueDetailModal: React.FC<VenueDetailModalProps> = ({
   const defaultPrice = venue.defaultHourPrice ?? venue.defaultHourlyPrice ?? venue.pricing?.defaultPricePerHour ?? 200;
   const depositAmount = venue.minimumDepositAmount ?? venue.minDeposit ?? 0;
   const customRules = venue.customHourPrices || venue.customHourlyPrices || venue.pricing?.customHourlyRates || [];
+  const customDateRules = venue.customDatePrices || [];
   const gallery = (venue.images && venue.images.length > 0) ? venue.images : ((venue.imageUrls && venue.imageUrls.length > 0) ? venue.imageUrls : ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80"]);
   const [activePhotoIdx, setActivePhotoIdx] = React.useState(0);
 
@@ -135,10 +136,14 @@ export const VenueDetailModal: React.FC<VenueDetailModalProps> = ({
               <TimeIcon className="w-4 h-4 text-brand-500" /> OPERATING HOURS
             </div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">
-              {venue.workingHours?.openTime || `${venue.startWorkingHours}:00`} - {venue.workingHours?.closeTime || `${venue.endWorkingHours}:00`}
+              {venue.startWorkingHours === 0 && venue.endWorkingHours === 24
+                ? "⚡ 24 Hours (Open 24/7)"
+                : `${venue.workingHours?.openTime || `${venue.startWorkingHours}:00`} - ${venue.workingHours?.closeTime || `${venue.endWorkingHours}:00`}`}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {venue.endWorkingHours - venue.startWorkingHours} hours / day open
+              {venue.endWorkingHours - venue.startWorkingHours === 24
+                ? "24 hours / day open (All day)"
+                : `${venue.endWorkingHours - venue.startWorkingHours} hours / day open`}
             </p>
           </div>
 
@@ -183,6 +188,40 @@ export const VenueDetailModal: React.FC<VenueDetailModalProps> = ({
                     Hour {rule.hour !== undefined ? `${rule.hour}:00` : `${rule.startHour} - ${rule.endHour}`}
                   </span>
                   <span className="font-bold text-brand-600 dark:text-brand-400">
+                    {rule.pricePerHour} EGP/hr
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Date-Specific Custom Pricing Detail */}
+        {customDateRules.length > 0 && (
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">
+              📅 Date-Specific Custom Pricing
+            </h4>
+            <div className="space-y-2">
+              {customDateRules.map((rule: any, idx: number) => (
+                <div
+                  key={rule.id || idx}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-gray-900 dark:text-white">
+                      {rule.date}
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      ({rule.startHour}:00 - {rule.endHour}:00)
+                    </span>
+                    {rule.note && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                        {rule.note}
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
                     {rule.pricePerHour} EGP/hr
                   </span>
                 </div>
