@@ -10,6 +10,7 @@ import { NewBookingModal, NewBookingDefaults } from "../components/bookings/moda
 import { ManageBookingModal } from "../components/bookings/modals/ManageBookingModal";
 import { CancelBookingModal } from "../components/bookings/modals/CancelBookingModal";
 import { GateCheckInModal } from "../components/bookings/modals/GateCheckInModal";
+import { ModernDatePicker } from "../components/ui/ModernDatePicker";
 
 export default function BookingsFullScreen() {
   const [selectedDate, setSelectedDate] = useState(toDateStr(new Date()));
@@ -66,21 +67,23 @@ export default function BookingsFullScreen() {
           </div>
 
           <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/90 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700/80 shadow-inner">
-            <button onClick={() => shiftDate(-1)} aria-label="Previous day" className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition">
+            <button onClick={() => shiftDate(-1)} aria-label="Previous day" className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition cursor-pointer">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent px-3 py-1 text-sm font-bold focus:outline-none cursor-pointer"
-            />
-            <button onClick={() => shiftDate(1)} aria-label="Next day" className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition">
+            <div className="w-44">
+              <ModernDatePicker
+                value={selectedDate}
+                onChange={setSelectedDate}
+                placeholder="Pick Match Date"
+                variant="compact"
+              />
+            </div>
+            <button onClick={() => shiftDate(1)} aria-label="Next day" className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition cursor-pointer">
               <ChevronRight className="w-4 h-4" />
             </button>
             <button
               onClick={() => setSelectedDate(toDateStr(new Date()))}
-              className="ml-1 px-3 py-1 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-bold transition"
+              className="ml-1 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-bold transition cursor-pointer"
             >
               Today
             </button>

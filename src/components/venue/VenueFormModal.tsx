@@ -575,31 +575,41 @@ export const VenueFormModal: React.FC<VenueFormModalProps> = ({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                Start Hour (0 - 23)
+              <label className="flex items-center gap-1 text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                Opening Hour
               </label>
-              <input
-                type="number"
-                min="0"
-                max="23"
+              <select
                 value={startWorkingHours}
                 onChange={(e) => setStartWorkingHours(Number(e.target.value))}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              />
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white cursor-pointer shadow-xs"
+              >
+                {START_HOURS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                End Hour (1 - 24)
+              <label className="flex items-center gap-1 text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                Closing Hour
               </label>
-              <input
-                type="number"
-                min="1"
-                max="24"
+              <select
                 value={endWorkingHours}
                 onChange={(e) => setEndWorkingHours(Number(e.target.value))}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              />
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-900 focus:border-indigo-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white cursor-pointer shadow-xs"
+              >
+                {Array.from({ length: 25 }).map((_, i) => (
+                  <option key={i} value={i}>
+                    {i === 24
+                      ? "24:00 (Midnight / 12:00 AM)"
+                      : `${i}:00 (${i >= 12 ? (i === 12 ? "12 PM" : `${i - 12} PM`) : i === 0 ? "12 AM" : `${i} AM`})`}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

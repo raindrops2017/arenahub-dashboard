@@ -47,7 +47,17 @@ const navItems: NavItem[] = [
   {
     icon: <PieChartIcon />,
     name: "Reports & Analytics",
-    path: "/reports",
+    subItems: [
+      { name: "Overview Hub", path: "/reports" },
+      { name: "Revenue & Payments", path: "/reports/revenue" },
+      { name: "Refunds & Wallet", path: "/reports/refunds-wallet" },
+      { name: "No-Shows & Losses", path: "/reports/no-shows" },
+      { name: "Coupons & Promos", path: "/reports/coupons" },
+      { name: "Ad System Reach", path: "/reports/ads" },
+      { name: "Venue Utilization", path: "/reports/venue-utilization" },
+      { name: "Customers & Funnel", path: "/reports/customers-funnel" },
+      { name: "Payouts & Disputes", path: "/reports/payouts-disputes" },
+    ],
   },
   {
     icon: <ShootingStarIcon />,

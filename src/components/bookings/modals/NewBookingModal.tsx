@@ -4,6 +4,8 @@ import { CustomerUser, PaymentMethod, Venue } from "../../../types";
 import { bookingApi } from "../../../services/api/bookingApi";
 import { customerApi } from "../../../services/api/customerApi";
 import { getId } from "../../../utils/booking";
+import { ModernDatePicker } from "../../ui/ModernDatePicker";
+import { ModernTimePicker } from "../../ui/ModernTimePicker";
 
 export interface NewBookingDefaults {
   venueId: string;
@@ -151,22 +153,26 @@ export function NewBookingModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={labelClass}>Date</label>
-            <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
+            <label className={labelClass}>Reservation Date</label>
+            <ModernDatePicker
+              value={date}
+              onChange={setDate}
+              placeholder="Pick Date"
+              variant="compact"
+            />
           </div>
           <div>
-            <label className={labelClass}>Start Hour (24h)</label>
-            <input
-              type="number"
-              min={6}
-              max={23}
+            <label className={labelClass}>Start Time (Slot Hour)</label>
+            <ModernTimePicker
               value={startHour}
-              onChange={(e) => {
-                const st = Number(e.target.value);
-                setStartHour(st);
-                setEndHour(st + 1);
+              onChange={(st) => {
+                const hourNum = Number(st);
+                setStartHour(hourNum);
+                setEndHour(hourNum + 1);
               }}
-              className={inputClass}
+              minHour={0}
+              maxHour={23}
+              variant="compact"
             />
           </div>
         </div>

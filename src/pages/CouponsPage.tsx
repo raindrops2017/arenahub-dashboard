@@ -16,6 +16,7 @@ import {
 } from "../icons";
 import { Coupon } from "../types";
 import { couponApi, CreateCouponPayload } from "../services/api/couponApi";
+import { ModernDatePicker } from "../components/ui/ModernDatePicker";
 
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -572,12 +573,11 @@ export default function CouponsPage() {
                 <label className="block text-xs font-bold uppercase text-gray-700 dark:text-gray-300 mb-1">
                   Start Date
                 </label>
-                <input
-                  type="date"
-                  required
+                <ModernDatePicker
                   value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-xs font-mono"
+                  onChange={(val) => setFormData({ ...formData, startDate: val })}
+                  placeholder="Pick Start Date"
+                  variant="compact"
                 />
               </div>
 
@@ -585,12 +585,11 @@ export default function CouponsPage() {
                 <label className="block text-xs font-bold uppercase text-gray-700 dark:text-gray-300 mb-1">
                   End Date
                 </label>
-                <input
-                  type="date"
-                  required
+                <ModernDatePicker
                   value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-xs font-mono"
+                  onChange={(val) => setFormData({ ...formData, endDate: val })}
+                  placeholder="Pick End Date"
+                  variant="compact"
                 />
               </div>
             </div>

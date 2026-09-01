@@ -45,6 +45,8 @@ export const statusBadgeStyle: Record<string, string> = {
   cancelled: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30",
   pending: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse",
   expired: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border border-gray-500/30",
+  no_show: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30",
+  "no show": "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30",
 };
 
 export const getStatusBadgeClass = (status: string | undefined) =>

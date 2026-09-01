@@ -137,11 +137,50 @@ export function GateCheckInModal({
                 <span className="text-[10px] text-gray-500 dark:text-gray-400">({result.booking.paymentStatus})</span>
               </div>
             </div>
-            {result.valid && (
-              <button type="button" onClick={handleCompleteCheckIn} className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition">
-                ✓ Confirm Gate Check-In & Complete
-              </button>
-            )}
+            {result.valid && (() => {
+              const bPrice = Number(result.booking.finalPrice ?? result.booking.price ?? result.booking.totalPrice ?? 0);
+              const bPaid = Number(result.booking.paidAmount ?? 0);
+              const remainingDue =
+                result.booking.remainingAmount !== undefined && result.booking.remainingAmount !== null && result.booking.remainingAmount > 0
+                  ? result.booking.remainingAmount
+                  : Math.max(0, bPrice - bPaid);
+              const hasOutstandingBalance = remainingDue > 0 && result.booking.paymentStatus !== "paid";
+
+              return (
+                <div className="pt-2">
+                  {hasOutstandingBalance && (
+                    <div className="mb-2.5 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between text-xs">
+                      <span className="font-medium text-amber-800 dark:text-amber-300">Remaining Balance:</span>
+                      <span className="font-bold text-amber-700 dark:text-amber-400 font-mono text-sm">
+                        {fmt(remainingDue)}
+                      </span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={handleCompleteCheckIn}
+                    className={`w-full py-2.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 ${
+                      hasOutstandingBalance
+                        ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                        : "bg-indigo-600 hover:bg-indigo-500 text-white"
+                    } disabled:opacity-50`}
+                  >
+                    {hasOutstandingBalance ? (
+                      <>
+                        <span>💵</span>
+                        <span>Collect Remaining ({fmt(remainingDue)} Cash) & Check In</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>✓</span>
+                        <span>Confirm Gate Check-In & Complete</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         );
       })()}

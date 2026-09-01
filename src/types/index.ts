@@ -228,9 +228,11 @@ export type BookingStatus =
   | 'completed'
   | 'cancelled'
   | 'expired'
+  | 'no_show'
   | 'Confirmed'
   | 'Completed'
   | 'Cancelled'
+  | 'No Show'
   | 'BOOKED'
   | 'COMPLETED';
 
@@ -365,6 +367,9 @@ export interface ReportsSummaryData {
   occupancyRate: number;
   totalBookings: number;
   cancelledBookings: number;
+  noShowBookings?: number;
+  cashRevenue?: number;
+  gatewayRevenue?: number;
   cancellationRate: number;
   dailyRevenue: { date: string; gross: number; net: number; refunds: number }[];
   venuePerformance: {

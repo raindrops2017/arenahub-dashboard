@@ -24,6 +24,14 @@ import VenuesPage from "./pages/VenuesPage";
 import VenueCreateEditPage from "./pages/VenueCreateEditPage";
 import BookingsFullScreen from "./pages/BookingsFullScreen";
 import ReportsPage from "./pages/ReportsPage";
+import RevenueReportsPage from "./pages/Reports/RevenueReportsPage";
+import RefundsWalletReportsPage from "./pages/Reports/RefundsWalletReportsPage";
+import NoShowsReportsPage from "./pages/Reports/NoShowsReportsPage";
+import CouponsReportsPage from "./pages/Reports/CouponsReportsPage";
+import AdsReportsPage from "./pages/Reports/AdsReportsPage";
+import VenueUtilizationReportsPage from "./pages/Reports/VenueUtilizationReportsPage";
+import CustomersFunnelReportsPage from "./pages/Reports/CustomersFunnelReportsPage";
+import PayoutsDisputesReportsPage from "./pages/Reports/PayoutsDisputesReportsPage";
 import AdBannersPage from "./pages/AdBannersPage";
 import PaymobTransactionsPage from "./pages/PaymobTransactionsPage";
 import CouponsPage from "./pages/CouponsPage";
@@ -52,7 +60,18 @@ export default function App() {
             <Route path="/venues/edit/:id" element={<VenueCreateEditPage />} />
             <Route path="/paymob-transactions" element={<PaymobTransactionsPage />} />
             <Route path="/coupons" element={<CouponsPage />} />
+            
+            {/* Reports Suite Routes */}
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/reports/revenue" element={<RevenueReportsPage />} />
+            <Route path="/reports/refunds-wallet" element={<RefundsWalletReportsPage />} />
+            <Route path="/reports/no-shows" element={<NoShowsReportsPage />} />
+            <Route path="/reports/coupons" element={<CouponsReportsPage />} />
+            <Route path="/reports/ads" element={<AdsReportsPage />} />
+            <Route path="/reports/venue-utilization" element={<VenueUtilizationReportsPage />} />
+            <Route path="/reports/customers-funnel" element={<CustomersFunnelReportsPage />} />
+            <Route path="/reports/payouts-disputes" element={<PayoutsDisputesReportsPage />} />
+
             <Route path="/ad-banners" element={<AdBannersPage />} />
 
 

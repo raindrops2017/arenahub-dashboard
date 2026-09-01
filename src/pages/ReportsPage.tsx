@@ -1,30 +1,21 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import PageMeta from "../components/common/PageMeta";
-import { venueApi } from "../services/api/venueApi";
-import { bookingApi } from "../services/api/bookingApi";
-import { ReportsSummaryData, Venue, Booking } from "../types";
+import { reportsApi } from "../services/api/reportsApi";
+import ReportsFilterHeader, { FilterState } from "./Reports/ReportsFilterHeader";
+import { Link } from "react-router";
 
-const fmt = (n: number) => `${n.toLocaleString()} EGP`;
-const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
-
-function useDarkMode() {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    const check = () => setDark(document.documentElement.classList.contains("dark"));
-    check();
-    const obs = new MutationObserver(check);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
-  return dark;
-}
+const fmt = (n: number) => `${(n || 0).toLocaleString()} EGP`;
+import { Venue, Booking, ReportsSummaryData } from "../types";
 
 export function computeReportsSummary(venues: Venue[], bookings: Booking[]): ReportsSummaryData {
   let gross = 0;
   let refunds = 0;
   let cancelled = 0;
+  let noShows = 0;
+  let cashRevenue = 0;
+  let gatewayRevenue = 0;
 
   const dateMap: Record<string, { gross: number; refunds: number }> = {};
   const hourMap: Record<number, number> = {};
@@ -40,13 +31,14 @@ export function computeReportsSummary(venues: Venue[], bookings: Booking[]): Rep
   });
 
   bookings.forEach((b) => {
-    const p = Number(b.price ?? b.totalPrice ?? 0);
+    const p = Number(b.finalPrice ?? b.price ?? b.totalPrice ?? 0);
+    const paidAmt = Number(b.paidAmount ?? (b.paymentStatus === "paid" ? p : 0));
     const dateStr = b.date ? String(b.date).split("T")[0] : new Date().toISOString().split("T")[0];
     const isCancelled = b.status === "cancelled" || b.status === "Cancelled";
+    const isNoShow = b.status === "no_show" || b.status === "No Show";
 
-    if (!dateMap[dateStr]) {
-      dateMap[dateStr] = { gross: 0, refunds: 0 };
-    }
+    if (isNoShow) noShows++;
+    if (!dateMap[dateStr]) dateMap[dateStr] = { gross: 0, refunds: 0 };
 
     if (isCancelled) {
       cancelled++;
@@ -56,13 +48,14 @@ export function computeReportsSummary(venues: Venue[], bookings: Booking[]): Rep
     } else {
       gross += p;
       dateMap[dateStr].gross += p;
+      const pMethod = (b.paymentMethod || "").toLowerCase();
+      if (pMethod === "cash") cashRevenue += paidAmt || p;
+      else gatewayRevenue += paidAmt || p;
     }
 
     const bVenueId = typeof b.venueId === "object" && b.venueId ? (b.venueId._id || b.venueId.id) : b.venueId;
     if (bVenueId && venueMap[bVenueId]) {
-      if (!isCancelled) {
-        venueMap[bVenueId].revenue += p;
-      }
+      if (!isCancelled) venueMap[bVenueId].revenue += p;
       venueMap[bVenueId].count += 1;
     }
 
@@ -82,11 +75,6 @@ export function computeReportsSummary(venues: Venue[], bookings: Booking[]): Rep
       net: val.gross - val.refunds,
       refunds: val.refunds,
     }));
-
-  if (dailyRevenue.length === 0) {
-    const today = new Date().toISOString().split("T")[0];
-    dailyRevenue.push({ date: today, gross: 0, net: 0, refunds: 0 });
-  }
 
   const venuePerformance = Object.entries(venueMap).map(([venueId, val]) => ({
     venueId,
@@ -118,6 +106,9 @@ export function computeReportsSummary(venues: Venue[], bookings: Booking[]): Rep
     occupancyRate,
     totalBookings: total,
     cancelledBookings: cancelled,
+    noShowBookings: noShows,
+    cashRevenue,
+    gatewayRevenue,
     cancellationRate,
     dailyRevenue,
     venuePerformance,
@@ -125,79 +116,55 @@ export function computeReportsSummary(venues: Venue[], bookings: Booking[]): Rep
   };
 }
 
-export default function ReportsPage() {
-  const [data, setData] = useState<ReportsSummaryData | null>(null);
-  const [venues, setVenues] = useState<Venue[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [venueFilter, setVenueFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
-  const isDark = useDarkMode();
+const pct = (n: number) => `${(n || 0).toFixed(1)}%`;
 
-  const reload = useCallback(async () => {
+function useDarkMode() {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    const check = () => setDark(document.documentElement.classList.contains("dark"));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return dark;
+}
+
+export const ReportsPage: React.FC = () => {
+  const isDark = useDarkMode();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
+
+  const [filters, setFilters] = useState<FilterState>(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
+    return {
+      startDate: start.toISOString().split("T")[0],
+      endDate: end.toISOString().split("T")[0],
+      venueId: "",
+      interval: "day",
+    };
+  });
+
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const fetchedVenues = await venueApi.getAllVenues();
-      setVenues(fetchedVenues);
-
-      const activeVList = fetchedVenues.filter((v) => v.isActive !== false);
-      const bookingPromises = activeVList.map((v) =>
-        bookingApi.getVenueBookings(v._id || v.id || "")
-      );
-      const bookingResults = await Promise.all(bookingPromises);
-      const allBookings: Booking[] = bookingResults.flat();
-      setBookings(allBookings);
-
-      const summary = computeReportsSummary(fetchedVenues, allBookings);
-      setData(summary);
+      const res = await reportsApi.getReportsOverview(filters);
+      setData(res);
     } catch (err) {
-      console.error("Error generating live reports:", err);
+      console.error("Failed to load reports overview:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    fetchData();
+  }, [fetchData]);
 
-  const filtered = useMemo(() => {
-    if (!data) return data;
-    if (venueFilter === "all") return data;
-    const vBookings = bookings.filter((b) => {
-      const bVenueId = typeof b.venueId === "object" && b.venueId ? (b.venueId._id || b.venueId.id) : b.venueId;
-      return bVenueId === venueFilter;
-    });
-    let gross = 0, refunds = 0, cancelled = 0;
-    vBookings.forEach((b) => {
-      const p = b.price || b.totalPrice || 0;
-      if (b.status === "cancelled" || b.status === "Cancelled") {
-        gross += p;
-        cancelled++;
-        refunds += (b.refundAmount || 0);
-      } else {
-        gross += p;
-      }
-    });
-    const net = gross - refunds;
-    return {
-      ...data,
-      grossRevenue: gross,
-      netRevenue: net,
-      totalRefunds: refunds,
-      cancelledBookings: cancelled,
-      totalBookings: vBookings.length,
-      cancellationRate: vBookings.length > 0 ? cancelled / vBookings.length : 0,
-      venuePerformance: data.venuePerformance.filter((v) => v.venueId === venueFilter),
-    } as ReportsSummaryData;
-  }, [data, venueFilter, bookings]);
+  const kpis = data?.kpis || {};
 
-  if (loading && !data) {
-    return <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">Loading Live Report Analytics...</div>;
-  }
-
-  if (!filtered) return null;
-
-  // Base ApexCharts Styling
   const baseChartOpts: ApexOptions = {
     chart: { background: "transparent", toolbar: { show: false }, fontFamily: "Inter, system-ui, sans-serif" },
     theme: { mode: isDark ? "dark" : "light" },
@@ -208,211 +175,130 @@ export default function ReportsPage() {
     legend: { labels: { colors: isDark ? "#cbd5e1" : "#334155" }, fontSize: "12px", fontWeight: 600 },
   };
 
-  // Revenue Breakdown Chart (Gross vs Net vs Refunds)
   const revenueOpts: ApexOptions = {
     ...baseChartOpts,
-    chart: { ...baseChartOpts.chart, type: "area", height: 320 },
+    chart: { ...baseChartOpts.chart, type: "area", height: 300 },
     stroke: { curve: "smooth", width: 2.5 },
+    colors: ["#10b981", "#3b82f6", "#f59e0b"],
     fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05 } },
-    colors: ["#10b981", "#3b82f6", "#f43f5e"],
-    xaxis: { ...baseChartOpts.xaxis, categories: filtered.dailyRevenue.map((d) => d.date) },
-    yaxis: {
-      ...baseChartOpts.yaxis,
-      labels: {
-        formatter: (v: number) => `${(v / 1000).toFixed(1)}k`,
-      },
-    },
   };
-  const revenueSeries = [
-    { name: "Gross Revenue", data: filtered.dailyRevenue.map((d) => d.gross) },
-    { name: "Net Revenue", data: filtered.dailyRevenue.map((d) => d.net) },
-    { name: "Wallet Refunds", data: filtered.dailyRevenue.map((d) => d.refunds) },
-  ];
 
-  // Venue Comparison Chart
-  const venuePerfOpts: ApexOptions = {
+  const peakHoursOpts: ApexOptions = {
     ...baseChartOpts,
-    chart: { ...baseChartOpts.chart, type: "bar", height: 280 },
-    plotOptions: { bar: { horizontal: true, borderRadius: 6, barHeight: "55%" } },
-    colors: ["#6366f1", "#06b6d4"],
-    xaxis: { ...baseChartOpts.xaxis, categories: filtered.venuePerformance.map((v) => v.venueName) },
+    chart: { ...baseChartOpts.chart, type: "bar", height: 260 },
+    plotOptions: { bar: { borderRadius: 5, columnWidth: "50%" } },
+    colors: ["#f59e0b", "#6366f1"],
   };
-  const venuePerfSeries = [
-    { name: "Revenue (EGP)", data: filtered.venuePerformance.map((v) => v.totalRevenue) },
-    { name: "Bookings", data: filtered.venuePerformance.map((v) => v.bookingsCount * 100) },
-  ];
 
-  // Peak Hours Chart
-  const peakOpts: ApexOptions = {
-    ...baseChartOpts,
-    chart: { ...baseChartOpts.chart, type: "bar", height: 280 },
-    plotOptions: { bar: { borderRadius: 6, columnWidth: "50%" } },
-    colors: ["#f59e0b"],
-    xaxis: { ...baseChartOpts.xaxis, categories: filtered.peakHours.map((p) => p.hour) },
-  };
-  const peakSeries = [{ name: "Bookings Count", data: filtered.peakHours.map((p) => p.bookingCount) }];
-
-  // Cancellation Donut Chart
-  const cancelOpts: ApexOptions = {
+  const paymentDonutOpts: ApexOptions = {
     chart: { type: "donut", background: "transparent" },
     theme: { mode: isDark ? "dark" : "light" },
-    colors: ["#10b981", "#f43f5e"],
-    labels: ["Completed/Confirmed", "Cancelled & Refunded"],
+    colors: ["#6366f1", "#10b981", "#3b82f6"],
+    labels: (data?.paymentMethods || []).map((p: any) => p.label),
     legend: { position: "bottom", labels: { colors: isDark ? "#cbd5e1" : "#334155" } },
-    dataLabels: { enabled: false },
   };
-  const cancelSeries = [
-    Math.max(filtered.totalBookings - filtered.cancelledBookings, 0),
-    filtered.cancelledBookings,
-  ];
+  const paymentDonutSeries = (data?.paymentMethods || []).map((p: any) => p.value || 0);
 
   return (
     <>
-      <PageMeta title="Live Reports & Financial Analytics | VenueOps" description="Live financial reports, occupancy analysis, and peak hour demand curves" />
+      <PageMeta title="Reports & Analytics Overview | ArenaHub" description="Executive summary of financial volume, court occupancy, player retention, and promo ROI" />
 
       <div className="space-y-6">
-        {/* Top Header & Filter Bar */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              Revenue & Financial Analytics
-            </h1>
-            <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-1">
-              live system calculations: slot reservations, customer wallet refunds, and capacity utilization.
-            </p>
-          </div>
+        <ReportsFilterHeader
+          filters={filters}
+          onFilterChange={setFilters}
+          onRefresh={fetchData}
+          loading={loading}
+        />
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <select
-              value={venueFilter}
-              onChange={(e) => setVenueFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-gray-50 dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
-            >
-              <option value="all">All Sports Venues</option>
-              {venues.map((v) => (
-                <option key={v._id || v.id} value={v._id || v.id}>
-                  {v.venueName || v.name}
-                </option>
-              ))}
-            </select>
-
-            <button
-              onClick={reload}
-              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition flex items-center gap-1"
-            >
-              🔄 Refresh Live Data
-            </button>
-          </div>
-        </div>
-
-        {/* ─── Metric KPI Cards ─── */}
+        {/* Executive KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon="💰" label="Gross Revenue" value={fmt(filtered.grossRevenue)} sub="All booked slots" color="emerald" />
-          <KpiCard icon="💳" label="Net Revenue" value={fmt(filtered.netRevenue)} sub="After wallet refunds" color="blue" />
-          <KpiCard icon="💸" label="Wallet Refunds" value={fmt(filtered.totalRefunds)} sub={`${filtered.cancelledBookings} cancelled`} color="rose" />
-          <KpiCard icon="📊" label="Slot Occupancy Rate" value={pct(filtered.occupancyRate)} sub={`${filtered.totalBookings} total matches`} color="amber" />
+          <KpiCard icon="💰" label="Gross Revenue" value={fmt(kpis.grossRevenue)} sub={`Total Bookings: ${kpis.totalBookings || 0}`} color="emerald" link="/reports/revenue" />
+          <KpiCard icon="💵" label="Net Revenue" value={fmt(kpis.netRevenue)} sub={`Refunds: ${fmt(kpis.totalRefunds)}`} color="blue" link="/reports/revenue" />
+          <KpiCard icon="🏟️" label="Overall Occupancy" value={pct(kpis.occupancyRate)} sub="Capacity utilization rate" color="indigo" link="/reports/venue-utilization" />
+          <KpiCard icon="🏦" label="Wallet Liability" value={fmt(kpis.walletLiability)} sub="Customer balance reserves" color="amber" link="/reports/refunds-wallet" />
         </div>
 
-        {/* ─── Revenue Area Chart ─── */}
+        {/* Quick Hub Navigation Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <ReportNavCard title="Revenue & Payments" desc="Payment method %, deposits, gateway reconciliation" link="/reports/revenue" icon="💳" />
+          <ReportNavCard title="Refunds & Wallet" desc="Refund velocity, reason breakdown & audit log" link="/reports/refunds-wallet" icon="💸" />
+          <ReportNavCard title="No-Shows & Losses" desc="Default attendance rate & lost slot revenue" link="/reports/no-shows" icon="⚠️" />
+          <ReportNavCard title="Coupons & Promos" desc="Campaign redemption rate & promo ROI" link="/reports/coupons" icon="🎟️" />
+          <ReportNavCard title="Ad System Reach" desc="Impressions, clicks, CTR, and advertiser spend" link="/reports/ads" icon="📢" />
+          <ReportNavCard title="Venue Utilization" desc="Peak demand curve & court RevPASH yield" link="/reports/venue-utilization" icon="🏟️" />
+          <ReportNavCard title="Customers & Funnel" desc="Booking conversion funnel & repeat cohorts" link="/reports/customers-funnel" icon="👥" />
+          <ReportNavCard title="Payouts & Disputes" desc="Owner commission settlement & support log" link="/reports/payouts-disputes" icon="🤝" />
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Revenue Area */}
+          <div className="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                  Revenue Trajectory
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Daily gross bookings vs paid collections</p>
+              </div>
+              <Link to="/reports/revenue" className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">
+                Full Details →
+              </Link>
+            </div>
+            {data?.revenueSeries && <Chart options={revenueOpts} series={data.revenueSeries} type="area" height={280} />}
+          </div>
+
+          {/* Payment Methods */}
+          <div className="p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                Payment Split
+              </h2>
+              <Link to="/reports/revenue" className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">
+                View →
+              </Link>
+            </div>
+            <div className="py-2">
+              <Chart options={paymentDonutOpts} series={paymentDonutSeries} type="donut" height={220} />
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-2 border-t border-gray-100 dark:border-gray-700/80">
+              Card online vs Cash reception vs Digital Wallet
+            </div>
+          </div>
+        </div>
+
+        {/* Peak Demand Hours Bar */}
         <div className="p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                Revenue Trajectory (Gross vs Net vs Refunds)
+                24-Hour Peak Demand Curve
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Daily financial breakdown in EGP</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Hourly booking frequency across all operating venues</p>
             </div>
+            <Link to="/reports/venue-utilization" className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">
+              Venue Breakdown →
+            </Link>
           </div>
-          <Chart options={revenueOpts} series={revenueSeries} type="area" height={300} />
-        </div>
-
-        {/* ─── Grid 2 Columns: Venue Performance & Peak Demand ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Venue Performance Bar */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">
-              Venue Performance Ranking
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Revenue and booking volume per court</p>
-            <Chart options={venuePerfOpts} series={venuePerfSeries} type="bar" height={260} />
-          </div>
-
-          {/* Peak Hourly Demand */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">
-              Peak Slot Demand Distribution
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Booking frequency across operating hours</p>
-            <Chart options={peakOpts} series={peakSeries} type="bar" height={260} />
-          </div>
-        </div>
-
-        {/* ─── Grid 2 Columns: Cancellation Breakdown & Summary Table ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Cancellation Donut */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm flex flex-col justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">
-                Cancellation & Refund Ratio
-              </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                Rate: <strong className="text-rose-500">{pct(filtered.cancellationRate)}</strong>
-              </p>
-            </div>
-            <div className="py-4">
-              <Chart options={cancelOpts} series={cancelSeries} type="donut" height={220} />
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-3 border-t border-slate-100 dark:border-gray-700/80">
-              {filtered.cancelledBookings} of {filtered.totalBookings} match reservations refunded
-            </div>
-          </div>
-
-          {/* Detailed Venue Summary Table */}
-          <div className="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">
-              Court Financial Ledger Breakdown
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Granular performance metrics by pitch</p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700/80 text-gray-500 dark:text-gray-400 font-bold uppercase">
-                    <th className="pb-3">Venue Name</th>
-                    <th className="pb-3">Bookings</th>
-                    <th className="pb-3">Total Revenue</th>
-                    <th className="pb-3 text-right">Occupancy Est.</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60 font-medium">
-                  {filtered.venuePerformance.map((vp) => (
-                    <tr key={vp.venueId} className="hover:bg-gray-50 dark:hover:bg-gray-100 dark:bg-gray-800/40">
-                      <td className="py-3 font-bold text-gray-900 dark:text-white">{vp.venueName}</td>
-                      <td className="py-3">{vp.bookingsCount} slots</td>
-                      <td className="py-3 font-bold text-emerald-600 dark:text-emerald-400">{fmt(vp.totalRevenue)}</td>
-                      <td className="py-3 text-right text-indigo-600 dark:text-indigo-400 font-bold">{pct(vp.occupancyRate)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          {data?.peakHoursSeries && <Chart options={peakHoursOpts} series={data.peakHoursSeries} type="bar" height={260} />}
         </div>
       </div>
     </>
   );
-}
+};
 
-function KpiCard({ icon, label, value, sub, color }: { icon: string; label: string; value: string; sub: string; color: string }) {
+function KpiCard({ icon, label, value, sub, color, link }: { icon: string; label: string; value: string; sub: string; color: string; link?: string }) {
   const colorMap: Record<string, string> = {
     emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-    rose: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+    indigo: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
     amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
   };
 
-  return (
-    <div className="p-5 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
+  const Content = (
+    <div className="p-5 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm hover:border-indigo-400 transition cursor-pointer">
+      <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</span>
         <span className={`text-base p-1.5 rounded-xl border ${colorMap[color] || ""}`}>{icon}</span>
       </div>
@@ -420,7 +306,28 @@ function KpiCard({ icon, label, value, sub, color }: { icon: string; label: stri
       <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{sub}</div>
     </div>
   );
+
+  return link ? <Link to={link}>{Content}</Link> : Content;
 }
 
+function ReportNavCard({ title, desc, link, icon }: { title: string; desc: string; link: string; icon: string }) {
+  return (
+    <Link
+      to={link}
+      className="p-4 rounded-xl bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700/80 hover:border-indigo-500 hover:shadow-md transition flex flex-col justify-between group"
+    >
+      <div>
+        <div className="text-xl mb-2">{icon}</div>
+        <h3 className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
+          {title}
+        </h3>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{desc}</p>
+      </div>
+      <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mt-3 flex items-center gap-1">
+        Open Report →
+      </div>
+    </Link>
+  );
+}
 
-
+export default ReportsPage;

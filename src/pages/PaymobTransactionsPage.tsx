@@ -162,9 +162,14 @@ export default function PaymobTransactionsPage() {
     ];
 
     const rows = filteredPayments.map((p) => {
-      const user = typeof p.userId === "object" ? p.userId : {};
-      const booking = typeof p.bookingId === "object" ? p.bookingId : {};
-      const venue = typeof booking.venueId === "object" ? booking.venueId : {};
+      const user = typeof p.userId === "object" && p.userId ? p.userId : {};
+      const booking = typeof p.bookingId === "object" && p.bookingId ? p.bookingId : {};
+      const venue =
+        typeof booking.venueId === "object" && booking.venueId
+          ? booking.venueId
+          : typeof p.venueId === "object" && p.venueId
+          ? p.venueId
+          : {};
 
       return [
         `"${p.transactionId || p._id}"`,
@@ -394,9 +399,14 @@ export default function PaymobTransactionsPage() {
                   </tr>
                 ) : (
                   filteredPayments.map((p) => {
-                    const user = typeof p.userId === "object" ? p.userId : {};
-                    const booking = typeof p.bookingId === "object" ? p.bookingId : {};
-                    const venue = typeof booking.venueId === "object" ? booking.venueId : {};
+                    const user = typeof p.userId === "object" && p.userId ? p.userId : {};
+                    const booking = typeof p.bookingId === "object" && p.bookingId ? p.bookingId : {};
+                    const venue =
+                      typeof booking.venueId === "object" && booking.venueId
+                        ? booking.venueId
+                        : typeof p.venueId === "object" && p.venueId
+                        ? p.venueId
+                        : {};
                     const dateFormatted = p.createdAt ? new Date(p.createdAt).toLocaleString() : "—";
                     const txDisplay = p.transactionId || p.referenceId || p._id;
 
@@ -548,24 +558,29 @@ export default function PaymobTransactionsPage() {
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
                   <span className="text-gray-400 font-medium">Customer</span>
                   <p className="font-bold text-gray-900 dark:text-white mt-0.5">
-                    {typeof selectedTx.userId === "object"
+                    {typeof selectedTx.userId === "object" && selectedTx.userId
                       ? selectedTx.userId?.userName || selectedTx.userId?.name
                       : "Customer"}
                   </p>
                   <p className="text-gray-500 font-mono text-[11px]">
-                    {typeof selectedTx.userId === "object" ? selectedTx.userId?.phone || selectedTx.userId?.email : "—"}
+                    {typeof selectedTx.userId === "object" && selectedTx.userId ? selectedTx.userId?.phone || selectedTx.userId?.email : "—"}
                   </p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
                   <span className="text-gray-400 font-medium">Booking / Venue</span>
                   <p className="font-bold text-gray-900 dark:text-white mt-0.5">
-                    {typeof selectedTx.bookingId === "object" && typeof selectedTx.bookingId?.venueId === "object"
-                      ? selectedTx.bookingId.venueId.venueName
+                    {typeof selectedTx.bookingId === "object" &&
+                    selectedTx.bookingId &&
+                    typeof selectedTx.bookingId?.venueId === "object" &&
+                    selectedTx.bookingId?.venueId
+                      ? selectedTx.bookingId.venueId.venueName || selectedTx.bookingId.venueId.name
+                      : typeof selectedTx.venueId === "object" && selectedTx.venueId
+                      ? selectedTx.venueId.venueName || selectedTx.venueId.name
                       : "Venue"}
                   </p>
                   <p className="text-brand-600 font-mono font-bold text-[11px]">
-                    Code: {typeof selectedTx.bookingId === "object" ? selectedTx.bookingId?.bookingCode : "—"}
+                    Code: {typeof selectedTx.bookingId === "object" && selectedTx.bookingId ? selectedTx.bookingId?.bookingCode : "—"}
                   </p>
                 </div>
 
@@ -644,7 +659,7 @@ export default function PaymobTransactionsPage() {
               <div className="flex justify-between">
                 <span className="text-gray-500">Customer:</span>
                 <span className="font-bold">
-                  {typeof selectedTx.userId === "object"
+                  {typeof selectedTx.userId === "object" && selectedTx.userId
                     ? selectedTx.userId?.userName || selectedTx.userId?.name
                     : "Customer"}
                 </span>
@@ -653,8 +668,13 @@ export default function PaymobTransactionsPage() {
               <div className="flex justify-between">
                 <span className="text-gray-500">Venue:</span>
                 <span className="font-bold">
-                  {typeof selectedTx.bookingId === "object" && typeof selectedTx.bookingId?.venueId === "object"
-                    ? selectedTx.bookingId.venueId.venueName
+                  {typeof selectedTx.bookingId === "object" &&
+                  selectedTx.bookingId &&
+                  typeof selectedTx.bookingId?.venueId === "object" &&
+                  selectedTx.bookingId?.venueId
+                    ? selectedTx.bookingId.venueId.venueName || selectedTx.bookingId.venueId.name
+                    : typeof selectedTx.venueId === "object" && selectedTx.venueId
+                    ? selectedTx.venueId.venueName || selectedTx.venueId.name
                     : "Venue"}
                 </span>
               </div>
@@ -662,7 +682,7 @@ export default function PaymobTransactionsPage() {
               <div className="flex justify-between">
                 <span className="text-gray-500">Booking Code:</span>
                 <span className="font-mono font-black text-brand-600">
-                  {typeof selectedTx.bookingId === "object" ? selectedTx.bookingId?.bookingCode : "—"}
+                  {typeof selectedTx.bookingId === "object" && selectedTx.bookingId ? selectedTx.bookingId?.bookingCode : "—"}
                 </span>
               </div>
 

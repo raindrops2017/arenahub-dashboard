@@ -8,6 +8,7 @@ interface InputProps {
   placeholder?: string;
   value?: string | number;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLInputElement>) => void;
   className?: string;
   min?: string;
   max?: string;
@@ -25,6 +26,7 @@ const Input: FC<InputProps> = ({
   placeholder,
   value,
   onChange,
+  onClick,
   className = "",
   min,
   max,
@@ -55,6 +57,7 @@ const Input: FC<InputProps> = ({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        onClick={onClick}
         min={min}
         max={max}
         step={step}
