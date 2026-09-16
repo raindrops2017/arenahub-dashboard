@@ -75,7 +75,7 @@ export const RefundsWalletReportsPage: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Refunds & Wallet Liability Report | ArenaHub" description="Customer wallet liability, refund volume, and transaction velocity audit" />
+      <PageMeta title="Refunds & Wallet Liability Report | San Siro" description="Customer wallet liability, refund volume, and transaction velocity audit" />
 
       <div className="space-y-6">
         <ReportsFilterHeader

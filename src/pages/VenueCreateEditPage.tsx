@@ -457,7 +457,7 @@ export default function VenueCreateEditPage() {
   return (
     <>
       <PageMeta
-        title={isEditing ? `Edit Venue: ${name || "Venue"} | ArenaHub` : "Add New Venue | ArenaHub"}
+        title={isEditing ? `Edit Venue: ${name || "Venue"} | San Siro` : "Add New Venue | San Siro"}
         description="Comprehensive venue management and location setup"
       />
       <PageBreadcrumb pageTitle={isEditing ? "Edit Venue" : "Add New Venue"} />

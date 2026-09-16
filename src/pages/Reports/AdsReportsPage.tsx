@@ -69,7 +69,7 @@ export const AdsReportsPage: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Ad System & Advertiser Report | ArenaHub" description="Ad revenue, banner impression reach, click-through rates, and advertiser performance" />
+      <PageMeta title="Ad System & Advertiser Report | San Siro" description="Ad revenue, banner impression reach, click-through rates, and advertiser performance" />
 
       <div className="space-y-6">
         <ReportsFilterHeader

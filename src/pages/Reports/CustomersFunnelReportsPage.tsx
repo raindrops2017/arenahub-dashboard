@@ -87,7 +87,7 @@ export const CustomersFunnelReportsPage: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Customer Retention & Booking Funnel Report | ArenaHub" description="Conversion funnel tracking, player retention cohorts, and top spender leaderboards" />
+      <PageMeta title="Customer Retention & Booking Funnel Report | San Siro" description="Conversion funnel tracking, player retention cohorts, and top spender leaderboards" />
 
       <div className="space-y-6">
         <ReportsFilterHeader

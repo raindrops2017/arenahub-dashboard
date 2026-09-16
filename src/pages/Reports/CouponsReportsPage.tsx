@@ -82,7 +82,7 @@ export const CouponsReportsPage: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Coupons & Promos Report | ArenaHub" description="Campaign redemption performance, revenue driven, and discount ROI metrics" />
+      <PageMeta title="Coupons & Promos Report | San Siro" description="Campaign redemption performance, revenue driven, and discount ROI metrics" />
 
       <div className="space-y-6">
         <ReportsFilterHeader

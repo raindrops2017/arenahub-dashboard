@@ -387,7 +387,7 @@ export default function CustomersPage() {
   return (
     <>
       <PageMeta
-        title="Customer Directory & Digital Wallets | VenueOps"
+        title="Customer Directory & Digital Wallets | San Siro"
         description="Live customer profile management, status controls, digital wallet balance top-ups, and audit ledger."
       />
       <PageBreadcrumb pageTitle="Customer Directory & Wallets" />

@@ -28,7 +28,7 @@ export default function UserDropdown() {
 
   const displayName = user?.name || "Sarah Admin";
   const displayRole = user?.role || "Admin";
-  const displayEmail = user?.email || "sarah.admin@venueops.com";
+  const displayEmail = user?.email || "admin@sansiro.com";
   const displayAvatar = user?.avatarUrl || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150";
 
   return (

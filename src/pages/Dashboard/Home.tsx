@@ -94,7 +94,7 @@ export default function Home() {
 
   return (
     <>
-      <PageMeta title="VenueOps Live Dashboard | Pitch Booking Manager" description="Live admin overview for venue booking management" />
+      <PageMeta title="Overview Dashboard | San Siro" description="Live admin overview for venue and pitch booking management" />
 
       {/* ─── Hero Welcome Banner ─── */}
       {/* <div className="relative overflow-hidden mb-6 p-6 md:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-gray-200 dark:border-gray-700/80 shadow-xl">
@@ -107,7 +107,7 @@ export default function Home() {
             <span>⚽</span> System Connected
           </div>
           <h1 className="text-3xl font-black tracking-tight text-white">
-            Welcome to VenueOps Dashboard
+            Welcome to San Siro Dashboard
           </h1>
           <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 leading-relaxed">
             Monitor real-time pitch bookings, venue occupancy rates, customer wallets, and revenue analytics connected to the live system.

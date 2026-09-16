@@ -344,8 +344,8 @@ export default function AdBannersPage() {
   return (
     <>
       <PageMeta
-        title="Ad Banners Management | ArenaHub Admin"
-        description="Manage top dynamic scrolling ad banners displayed on the mobile application."
+        title="Ad Banners Management | San Siro"
+        description="Manage dynamic scrolling ad banners displayed on the mobile application."
       />
       <PageBreadcrumb pageTitle="Ad Banners Management" />
 

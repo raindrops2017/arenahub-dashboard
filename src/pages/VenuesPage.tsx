@@ -150,7 +150,7 @@ export default function VenuesPage() {
   return (
     <>
       <PageMeta
-        title="Live Sports Venues Management | VenueOps"
+        title="Live Sports Venues Management | San Siro"
         description="Live connected venue management with Multi-image uploads."
       />
 

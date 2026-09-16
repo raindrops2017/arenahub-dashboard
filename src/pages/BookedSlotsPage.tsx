@@ -395,7 +395,7 @@ export default function BookedSlotsPage() {
   return (
     <div>
       <PageMeta
-        title="Booked Match Slots & Attendance | Dashboard"
+        title="Booked Match Slots & Attendance | San Siro"
         description="Monitor booked slots, payment collections, attendance status (Show / No Show), and customer account actions."
       />
 

@@ -201,7 +201,7 @@ export default function PaymobTransactionsPage() {
   return (
     <>
       <PageMeta
-        title="Paymob Online Transactions | ArenaHub"
+        title="Paymob Online Transactions | San Siro"
         description="Dedicated ledger for Paymob online credit/debit card payments and gateway settlements."
       />
       <PageBreadcrumb pageTitle="Paymob Transactions" />
@@ -638,7 +638,7 @@ export default function PaymobTransactionsPage() {
         >
           <div id="printable-receipt" className="text-gray-900 dark:text-white">
             <div className="text-center pb-4 border-b border-dashed border-gray-300 dark:border-gray-700">
-              <h2 className="text-xl font-black tracking-wider uppercase">ARENAHUB</h2>
+              <h2 className="text-xl font-black tracking-wider uppercase">SAN SIRO</h2>
               <p className="text-xs text-gray-500">Official Paymob Online Payment Voucher</p>
               <p className="text-[10px] text-gray-400 font-mono mt-1">
                 Receipt #{selectedTx.transactionId || selectedTx._id}
@@ -697,7 +697,7 @@ export default function PaymobTransactionsPage() {
             </div>
 
             <div className="text-center pt-4 border-t border-dashed border-gray-300 dark:border-gray-700 text-[11px] text-gray-400">
-              <p className="font-bold text-gray-600 dark:text-gray-300">Thank you for booking with ArenaHub!</p>
+              <p className="font-bold text-gray-600 dark:text-gray-300">Thank you for booking with San Siro!</p>
               <p className="mt-0.5">Paymob electronic receipt for pitch reservation.</p>
             </div>
 

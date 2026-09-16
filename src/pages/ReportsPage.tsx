@@ -201,7 +201,7 @@ export const ReportsPage: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Reports & Analytics Overview | ArenaHub" description="Executive summary of financial volume, court occupancy, player retention, and promo ROI" />
+      <PageMeta title="Reports & Analytics Overview | San Siro" description="Executive summary of financial volume, court occupancy, player retention, and promo ROI" />
 
       <div className="space-y-6">
         <ReportsFilterHeader

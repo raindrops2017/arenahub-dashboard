@@ -164,7 +164,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageMeta
-        title="Notifications & Broadcasts | VenueOps Dashboard"
+        title="Notifications & Broadcasts | San Siro"
         description="Compose and dispatch instant push notifications and in-app updates to customers and guests."
       />
       <PageBreadcrumb pageTitle="Notifications Hub" />
@@ -476,7 +476,7 @@ export default function NotificationsPage() {
                 <div className="flex items-center justify-between text-[11px] text-gray-400 mb-3 pb-2 border-b border-gray-800">
                   <div className="flex items-center gap-1.5 font-bold text-white">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                    ArenaHub
+                    San Siro
                   </div>
                   <span>Just now</span>
                 </div>

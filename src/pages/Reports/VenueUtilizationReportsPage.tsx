@@ -74,7 +74,7 @@ export const VenueUtilizationReportsPage: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Venue & Pitch Utilization Report | ArenaHub" description="Court occupancy rates, 24-hour demand curves, and capacity efficiency metrics" />
+      <PageMeta title="Venue & Pitch Utilization Report | San Siro" description="Court occupancy rates, 24-hour demand curves, and capacity efficiency metrics" />
 
       <div className="space-y-6">
         <ReportsFilterHeader

@@ -45,7 +45,7 @@ export const PayoutsDisputesReportsPage: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="Venue Owner Payouts & Disputes Report | ArenaHub" description="Owner commission settlements, platform service fees, and customer inquiry dispute tracking" />
+      <PageMeta title="Venue Owner Payouts & Disputes Report | San Siro" description="Owner commission settlements, platform service fees, and customer inquiry dispute tracking" />
 
       <div className="space-y-6">
         <ReportsFilterHeader

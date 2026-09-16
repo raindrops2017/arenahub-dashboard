@@ -79,7 +79,7 @@ export const NoShowsReportsPage: React.FC = () => {
 
   return (
     <>
-      <PageMeta title="No-Shows & Lost Revenue Report | ArenaHub" description="Track player attendance defaults, revenue losses, and customer default frequencies" />
+      <PageMeta title="No-Shows & Lost Revenue Report | San Siro" description="Track player attendance defaults, revenue losses, and customer default frequencies" />
 
       <div className="space-y-6">
         <ReportsFilterHeader

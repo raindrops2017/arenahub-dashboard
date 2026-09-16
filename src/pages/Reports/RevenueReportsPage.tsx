@@ -105,7 +105,7 @@ export const RevenueReportsPage: React.FC = () => {
   return (
     <>
       <PageMeta
-        title="Revenue & Cash Settlement Report | ArenaHub"
+        title="Revenue & Cash Settlement Report | San Siro"
         description="Multi-dimensional revenue analytics, payment breakdowns, discounts, refunds, and staff cash collection audits."
       />
 

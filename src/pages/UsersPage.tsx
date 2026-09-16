@@ -139,7 +139,7 @@ export default function UsersPage() {
   return (
     <>
       <PageMeta
-        title="Admin & Staff Accounts | VenueOps"
+        title="Admin & Staff Accounts | San Siro"
         description="System management users, roles, and administrative staff accounts."
       />
       <PageBreadcrumb pageTitle="Staff Accounts" />

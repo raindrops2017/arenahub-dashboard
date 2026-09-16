@@ -95,7 +95,7 @@ const Calendar: React.FC = () => {
   return (
     <>
       <PageMeta
-        title="Live Bookings Calendar | TailAdmin Dashboard"
+        title="Live Bookings Calendar | San Siro"
         description="Interactive calendar view of live sports venue match bookings."
       />
       <div className="space-y-4">

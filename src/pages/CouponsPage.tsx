@@ -214,7 +214,7 @@ export default function CouponsPage() {
   return (
     <>
       <PageMeta
-        title="Coupon & Promotional Discounts | VenueOps Dashboard"
+        title="Coupon & Promotional Discounts | San Siro"
         description="Create, configure, and manage promotional discount coupons, percentage discounts, and voucher campaigns."
       />
       <PageBreadcrumb pageTitle="Coupon Management" />
