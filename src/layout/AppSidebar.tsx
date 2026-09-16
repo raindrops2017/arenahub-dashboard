@@ -13,6 +13,8 @@ import {
   ShootingStarIcon,
   DollarLineIcon,
   DocsIcon,
+  PaperPlaneIcon,
+  ListIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 
@@ -31,8 +33,13 @@ const navItems: NavItem[] = [
   },
   {
     icon: <CalenderIcon />,
-    name: "Booking Manager",
+    name: "Booking Calendar",
     path: "/bookings/fullscreen",
+  },
+  {
+    icon: <ListIcon />,
+    name: "Booked Slots & Show",
+    path: "/booked-slots",
   },
   {
     icon: <DollarLineIcon />,
@@ -73,6 +80,11 @@ const navItems: NavItem[] = [
     icon: <GroupIcon />,
     name: "Customer Management",
     path: "/customers",
+  },
+  {
+    icon: <PaperPlaneIcon />,
+    name: "Notifications Hub",
+    path: "/notifications",
   },
   {
     icon: <UserCircleIcon />,

@@ -56,7 +56,7 @@ export const ReportsFilterHeader: React.FC<ReportsFilterHeaderProps> = ({
   return (
     <div className="space-y-4">
       {/* Top Filter Bar */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
+      <div className="relative z-40 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-700/80 shadow-sm">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             📊 Reports & Analytics Hub
@@ -84,6 +84,7 @@ export const ReportsFilterHeader: React.FC<ReportsFilterHeaderProps> = ({
               onChange={(val) => handleChange("endDate", val)}
               placeholder="To Date"
               variant="compact"
+              align="right"
             />
           </div>
 

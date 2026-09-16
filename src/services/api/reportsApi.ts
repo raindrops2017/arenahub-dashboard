@@ -6,6 +6,7 @@ export interface QueryReportParams {
   from?: string;
   to?: string;
   venueId?: string;
+  staffId?: string;
   interval?: 'day' | 'week' | 'month';
   page?: number;
   limit?: number;

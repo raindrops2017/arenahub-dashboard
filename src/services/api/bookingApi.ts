@@ -7,6 +7,8 @@ export interface QueryBookingParams {
   status?: string;
   paymentStatus?: string;
   date?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export function formatTimeSlot(start: number, end: number): { startStr: string; endStr: string } {
@@ -130,7 +132,12 @@ export const bookingApi = {
 
   updateStatus: async (
     id: string,
-    data: { status?: string; paymentStatus?: string }
+    data: {
+      status?: string;
+      paymentStatus?: string;
+      collectCash?: boolean;
+      cashAmount?: number;
+    }
   ): Promise<Booking> => {
     const res = await api.patch<any>(`/booking/${id}/status`, data);
     const item = res?.data || res;

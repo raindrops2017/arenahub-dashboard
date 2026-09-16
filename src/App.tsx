@@ -23,6 +23,7 @@ import CustomersPage from "./pages/CustomersPage";
 import VenuesPage from "./pages/VenuesPage";
 import VenueCreateEditPage from "./pages/VenueCreateEditPage";
 import BookingsFullScreen from "./pages/BookingsFullScreen";
+import BookedSlotsPage from "./pages/BookedSlotsPage";
 import ReportsPage from "./pages/ReportsPage";
 import RevenueReportsPage from "./pages/Reports/RevenueReportsPage";
 import RefundsWalletReportsPage from "./pages/Reports/RefundsWalletReportsPage";
@@ -35,6 +36,7 @@ import PayoutsDisputesReportsPage from "./pages/Reports/PayoutsDisputesReportsPa
 import AdBannersPage from "./pages/AdBannersPage";
 import PaymobTransactionsPage from "./pages/PaymobTransactionsPage";
 import CouponsPage from "./pages/CouponsPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import { DashboardAuthProvider } from "./context/DashboardAuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -58,6 +60,7 @@ export default function App() {
             <Route path="/venues" element={<VenuesPage />} />
             <Route path="/venues/create" element={<VenueCreateEditPage />} />
             <Route path="/venues/edit/:id" element={<VenueCreateEditPage />} />
+            <Route path="/booked-slots" element={<BookedSlotsPage />} />
             <Route path="/paymob-transactions" element={<PaymobTransactionsPage />} />
             <Route path="/coupons" element={<CouponsPage />} />
             
@@ -73,6 +76,7 @@ export default function App() {
             <Route path="/reports/payouts-disputes" element={<PayoutsDisputesReportsPage />} />
 
             <Route path="/ad-banners" element={<AdBannersPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
 
 
             {/* Others Page */}
@@ -102,6 +106,14 @@ export default function App() {
           {/* Protected Full-Screen Booking Page */}
           <Route
             path="/bookings/fullscreen"
+            element={
+              <ProtectedRoute>
+                <BookingsFullScreen />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bookings-fullscreen"
             element={
               <ProtectedRoute>
                 <BookingsFullScreen />

@@ -10,6 +10,7 @@ export interface ModernDatePickerProps {
   className?: string;
   variant?: "default" | "compact" | "pill";
   label?: string;
+  align?: "left" | "right";
 }
 
 const MONTH_NAMES = [
@@ -28,6 +29,7 @@ export const ModernDatePicker: React.FC<ModernDatePickerProps> = ({
   className = "",
   variant = "default",
   label,
+  align = "left",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -153,7 +155,7 @@ export const ModernDatePicker: React.FC<ModernDatePickerProps> = ({
   };
 
   return (
-    <div className={`relative ${className}`} ref={containerRef}>
+    <div className={`relative ${isOpen ? "z-[9999]" : "z-10"} ${className}`} ref={containerRef}>
       {label && (
         <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
           {label}
@@ -185,7 +187,11 @@ export const ModernDatePicker: React.FC<ModernDatePickerProps> = ({
 
       {/* Popover Calendar */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 z-50 w-72 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-3.5 animate-in fade-in zoom-in-95 duration-150">
+        <div
+          className={`absolute ${
+            align === "right" ? "right-0" : "left-0"
+          } top-full mt-1.5 z-[9999] w-72 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-3.5 animate-in fade-in zoom-in-95 duration-150`}
+        >
           {/* Calendar Header: Month + Navigation */}
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100 dark:border-gray-800">
             <button

@@ -90,7 +90,11 @@ export default function AdBannersPage() {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [formData, setFormData] = useState<{
     title: string;
+    titleAr: string;
+    titleEn: string;
     subtitle: string;
+    subtitleAr: string;
+    subtitleEn: string;
     displayDuration: number; // Carousel slide timeout in seconds before scrolling
     actionType: AdActionType;
     actionValue: string;
@@ -100,7 +104,11 @@ export default function AdBannersPage() {
     endDate: string; // Expiry date & time
   }>({
     title: "",
+    titleAr: "",
+    titleEn: "",
     subtitle: "",
+    subtitleAr: "",
+    subtitleEn: "",
     displayDuration: 5,
     actionType: "NONE",
     actionValue: "",
@@ -125,7 +133,11 @@ export default function AdBannersPage() {
           return {
             id: ad._id || (ad as any).id || `ad-${idx}`,
             title: ad.title,
+            titleAr: (ad as any).titleAr,
+            titleEn: (ad as any).titleEn,
             subtitle: ad.description || "",
+            subtitleAr: (ad as any).descriptionAr,
+            subtitleEn: (ad as any).descriptionEn,
             imageUrl: resolveBannerImageUrl(ad.image),
             displayDuration: Number(ad.displayDuration || ad.durationMinutes || 5),
             actionType: (ad.linkUrl ? "EXTERNAL_LINK" : "NONE") as AdActionType,
@@ -165,7 +177,11 @@ export default function AdBannersPage() {
     const defaultEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     setFormData({
       title: "",
+      titleAr: "",
+      titleEn: "",
       subtitle: "",
+      subtitleAr: "",
+      subtitleEn: "",
       displayDuration: 5,
       actionType: "NONE",
       actionValue: "",
@@ -183,7 +199,11 @@ export default function AdBannersPage() {
     setImagePreview(banner.imageUrl);
     setFormData({
       title: banner.title,
+      titleAr: banner.titleAr || "",
+      titleEn: banner.titleEn || banner.title || "",
       subtitle: banner.subtitle || "",
+      subtitleAr: banner.subtitleAr || "",
+      subtitleEn: banner.subtitleEn || banner.subtitle || "",
       displayDuration: Number(banner.displayDuration || banner.durationMinutes || 5),
       actionType: banner.actionType || "NONE",
       actionValue: banner.actionValue || "",
@@ -228,7 +248,10 @@ export default function AdBannersPage() {
 
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title.trim()) {
+    const effectiveTitle = formData.titleEn.trim() || formData.title.trim() || formData.titleAr.trim();
+    const effectiveSubtitle = formData.subtitleEn.trim() || formData.subtitle.trim() || formData.subtitleAr.trim();
+
+    if (!effectiveTitle) {
       alert("Please enter a title for the banner.");
       return;
     }
@@ -240,8 +263,14 @@ export default function AdBannersPage() {
     setSubmitting(true);
     try {
       const fd = new FormData();
-      fd.append("title", formData.title.trim());
-      if (formData.subtitle.trim()) fd.append("description", formData.subtitle.trim());
+      fd.append("title", effectiveTitle);
+      if (formData.titleAr.trim()) fd.append("titleAr", formData.titleAr.trim());
+      if (formData.titleEn.trim()) fd.append("titleEn", formData.titleEn.trim());
+
+      if (effectiveSubtitle) fd.append("description", effectiveSubtitle);
+      if (formData.subtitleAr.trim()) fd.append("descriptionAr", formData.subtitleAr.trim());
+      if (formData.subtitleEn.trim()) fd.append("descriptionEn", formData.subtitleEn.trim());
+
       fd.append("position", "DASHBOARD_TOP");
       fd.append("status", formData.status === "Active" ? "active" : "inactive");
       fd.append("priority", String(Number(formData.order) || 1));
@@ -697,32 +726,71 @@ export default function AdBannersPage() {
                   <span>🎨 Banner Content & Image</span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-3">
+                <div className="space-y-4">
+                  {/* Headline Title EN & AR */}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
-                        Headline Title *
+                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+                        <span>Headline Title (English)</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">EN 🇬🇧</span>
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         required
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        dir="ltr"
+                        value={formData.titleEn}
+                        onChange={(e) => setFormData({ ...formData, titleEn: e.target.value, title: e.target.value })}
                         placeholder="e.g. Summer Night Tournament"
                         className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
-                        Subtitle / Description
+                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+                        <span>العنوان الرئيسي (عربي)</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">AR 🇪🇬</span>
                       </label>
                       <input
                         type="text"
-                        value={formData.subtitle}
-                        onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
+                        dir="rtl"
+                        value={formData.titleAr}
+                        onChange={(e) => setFormData({ ...formData, titleAr: e.target.value })}
+                        placeholder="مثال: بطولة ليالي الصيف الكبرى"
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white text-right"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Subtitle / Description EN & AR */}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+                        <span>Subtitle / Description (English)</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">EN 🇬🇧</span>
+                      </label>
+                      <input
+                        type="text"
+                        dir="ltr"
+                        value={formData.subtitleEn}
+                        onChange={(e) => setFormData({ ...formData, subtitleEn: e.target.value, subtitle: e.target.value })}
                         placeholder="e.g. 20% Discount for weekend bookings"
                         className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1">
+                        <span>الوصف الفرعي (عربي)</span>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">AR 🇪🇬</span>
+                      </label>
+                      <input
+                        type="text"
+                        dir="rtl"
+                        value={formData.subtitleAr}
+                        onChange={(e) => setFormData({ ...formData, subtitleAr: e.target.value })}
+                        placeholder="مثال: خصم 20% لحجوزات نهاية الأسبوع"
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white text-right"
                       />
                     </div>
                   </div>

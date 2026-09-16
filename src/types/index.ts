@@ -79,10 +79,16 @@ export interface Venue {
   _id: string;
   id?: string; // UI alias
   venueName: string;
+  venueNameAr?: string;
+  venueNameEn?: string;
   name?: string; // UI alias
+  nameAr?: string; // UI alias
+  nameEn?: string; // UI alias
   sportsType: string[];
   sportsTypes?: SportsType[]; // UI alias
   address: string;
+  addressAr?: string;
+  addressEn?: string;
   locationAlt: number;
   locationLang: number;
   coordinates?: Coordinates; // UI alias
@@ -139,6 +145,7 @@ export interface CustomerUser {
   status?: CustomerStatus;
   statusReason?: string;
   statusUpdatedAt?: string;
+  noShowCount?: number;
   walletId?: string; // UI alias
   createdAt?: string;
   updatedAt?: string;
@@ -388,7 +395,11 @@ export interface Advertisement {
   _id: string;
   id?: string;
   title: string;
+  titleAr?: string;
+  titleEn?: string;
   description?: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
   image: string;
   linkUrl?: string;
   position?: 'DASHBOARD_TOP' | 'DASHBOARD_MIDDLE' | 'DASHBOARD_SIDEBAR' | string;
@@ -408,7 +419,11 @@ export interface Advertisement {
 export interface AdBanner {
   id: string;
   title: string;
+  titleAr?: string;
+  titleEn?: string;
   subtitle?: string;
+  subtitleAr?: string;
+  subtitleEn?: string;
   imageUrl: string;
   displayDuration: number;
   actionType: AdActionType;

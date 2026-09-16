@@ -43,7 +43,20 @@ export function GateCheckInModal({
 
   const handleCompleteCheckIn = async () => {
     if (!result) return;
-    await bookingApi.updateStatus(getId(result.booking), { status: "completed", paymentStatus: "paid" });
+    const bPrice = Number(result.booking.finalPrice ?? result.booking.price ?? result.booking.totalPrice ?? 0);
+    const bPaid = Number(result.booking.paidAmount ?? 0);
+    const remainingDue =
+      result.booking.remainingAmount !== undefined && result.booking.remainingAmount !== null && result.booking.remainingAmount > 0
+        ? result.booking.remainingAmount
+        : Math.max(0, bPrice - bPaid);
+    const hasOutstandingBalance = remainingDue > 0 && result.booking.paymentStatus !== "paid";
+
+    await bookingApi.updateStatus(getId(result.booking), {
+      status: "completed",
+      paymentStatus: "paid",
+      collectCash: hasOutstandingBalance,
+      cashAmount: hasOutstandingBalance ? remainingDue : 0,
+    });
     await onCompleted();
     handleClose();
   };

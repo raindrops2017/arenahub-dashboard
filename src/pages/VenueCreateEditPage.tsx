@@ -108,8 +108,12 @@ export default function VenueCreateEditPage() {
 
   // Form State
   const [name, setName] = useState("");
+  const [nameAr, setNameAr] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [sportsTypes, setSportsTypes] = useState<string[]>(["Football", "Padel"]);
   const [address, setAddress] = useState("");
+  const [addressAr, setAddressAr] = useState("");
+  const [addressEn, setAddressEn] = useState("");
   const [lat, setLat] = useState<number | "">(30.0444);
   const [lng, setLng] = useState<number | "">(31.2357);
   const [startWorkingHours, setStartWorkingHours] = useState<number>(8);
@@ -156,10 +160,15 @@ export default function VenueCreateEditPage() {
       venueApi
         .getVenueById(id)
         .then((venue: Venue) => {
-          setName(venue.venueName || venue.name || "");
-          const st = venue.sportsType || venue.sportsTypes || ["Football"];
-          setSportsTypes(Array.isArray(st) ? st : [st]);
-          setAddress(venue.address || "");
+          const loadedName = venue.venueName || venue.name || "";
+          setName(loadedName);
+          setNameAr(venue.venueNameAr || venue.nameAr || "");
+          setNameEn(venue.venueNameEn || venue.nameEn || loadedName);
+
+          const loadedAddress = venue.address || "";
+          setAddress(loadedAddress);
+          setAddressAr(venue.addressAr || "");
+          setAddressEn(venue.addressEn || loadedAddress);
           setLat(venue.locationAlt ?? venue.coordinates?.lat ?? 30.0444);
           setLng(venue.locationLang ?? venue.coordinates?.lng ?? 31.2357);
           setStartWorkingHours(Number(venue.startWorkingHours ?? 8));
@@ -323,8 +332,9 @@ export default function VenueCreateEditPage() {
   const handleMapLocationChange = (newLat: number, newLng: number, addressSuggestion?: string) => {
     setLat(newLat);
     setLng(newLng);
-    if (addressSuggestion && !address.trim()) {
+    if (addressSuggestion && !addressEn.trim() && !address.trim()) {
       setAddress(addressSuggestion);
+      setAddressEn(addressSuggestion);
     }
   };
 
@@ -333,11 +343,14 @@ export default function VenueCreateEditPage() {
     setErrorMsg("");
     setSuccessMsg("");
 
-    if (!name.trim()) {
+    const effectiveName = nameEn.trim() || name.trim() || nameAr.trim();
+    const effectiveAddress = addressEn.trim() || address.trim() || addressAr.trim();
+
+    if (!effectiveName) {
       setErrorMsg("Venue Name is required");
       return;
     }
-    if (!address.trim()) {
+    if (!effectiveAddress) {
       setErrorMsg("Physical Address is required");
       return;
     }
@@ -355,8 +368,14 @@ export default function VenueCreateEditPage() {
     }
 
     const formData = new FormData();
-    formData.append("venueName", name.trim());
-    formData.append("address", address.trim());
+    formData.append("venueName", effectiveName);
+    if (nameAr.trim()) formData.append("venueNameAr", nameAr.trim());
+    if (nameEn.trim()) formData.append("venueNameEn", nameEn.trim());
+
+    formData.append("address", effectiveAddress);
+    if (addressAr.trim()) formData.append("addressAr", addressAr.trim());
+    if (addressEn.trim()) formData.append("addressEn", addressEn.trim());
+
     formData.append("locationAlt", String(Number(lat)));
     formData.append("locationLang", String(Number(lng)));
     formData.append("startWorkingHours", String(startWorkingHours));
@@ -496,20 +515,76 @@ export default function VenueCreateEditPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
-                  Venue Name <span className="text-red-500">*</span>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                  <span>Venue Name (English)</span>
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">EN 🇬🇧</span>
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  dir="ltr"
+                  value={nameEn}
+                  onChange={(e) => {
+                    setNameEn(e.target.value);
+                    setName(e.target.value);
+                  }}
                   placeholder="e.g. Santiago Bernabéu Arena Cairo"
                   className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white font-semibold"
                 />
               </div>
 
               <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                  <span>اسم الملعب (عربي)</span>
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">AR 🇪🇬</span>
+                </label>
+                <input
+                  type="text"
+                  dir="rtl"
+                  value={nameAr}
+                  onChange={(e) => setNameAr(e.target.value)}
+                  placeholder="مثال: ملعب سانتياغو برنابيو القاهرة"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white font-semibold text-right"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                  <span>Physical Address (English)</span>
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">EN 🇬🇧</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  dir="ltr"
+                  value={addressEn}
+                  onChange={(e) => {
+                    setAddressEn(e.target.value);
+                    setAddress(e.target.value);
+                  }}
+                  placeholder="e.g. 50 Road 9, Maadi, Cairo, Egypt"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                  <span>العنوان التفصيلي (عربي)</span>
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">AR 🇪🇬</span>
+                </label>
+                <input
+                  type="text"
+                  dir="rtl"
+                  value={addressAr}
+                  onChange={(e) => setAddressAr(e.target.value)}
+                  placeholder="مثال: 50 شارع 9، المعادي، القاهرة"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white text-right"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
                   Status
                 </label>
@@ -521,20 +596,6 @@ export default function VenueCreateEditPage() {
                   <option value="Active">Active (Open for Bookings)</option>
                   <option value="Maintenance">Maintenance (Closed/Suspended)</option>
                 </select>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
-                  Physical Address / Street <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="e.g. 50 Road 9, Maadi, Cairo, Egypt"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                />
               </div>
             </div>
           </div>

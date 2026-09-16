@@ -11,13 +11,11 @@ import {
   CheckCircleIcon,
   AlertIcon,
   CloseIcon,
-  CalenderIcon,
   CopyIcon,
 } from "../icons";
 import { Payment } from "../types";
 import { paymentApi } from "../services/api/paymentApi";
-import flatpickr from "flatpickr";
-import "flatpickr/dist/flatpickr.css";
+import { ModernDatePicker } from "../components/ui/ModernDatePicker";
 
 export default function PaymobTransactionsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -35,42 +33,21 @@ export default function PaymobTransactionsPage() {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Initialize Flatpickr Date-Range Picker
-  useEffect(() => {
-    const picker = flatpickr("#paymob-date-range", {
-      mode: "range",
-      dateFormat: "Y-m-d",
-      defaultDate: undefined,
-      onChange: (selectedDates) => {
-        if (selectedDates.length === 2) {
-          const start = selectedDates[0].toISOString().split("T")[0];
-          const end = selectedDates[1].toISOString().split("T")[0];
-          setDateRange({ start, end });
-        } else if (selectedDates.length === 0) {
-          setDateRange({ start: "", end: "" });
-        }
-      },
-    });
-
-    return () => {
-      if (!Array.isArray(picker)) {
-        picker.destroy();
-      }
-    };
-  }, []);
-
   const fetchPayments = useCallback(async () => {
     setLoading(true);
     try {
       const res = await paymentApi.getAllPayments({
+        paymentMethod: "paymob",
         startDate: dateRange.start || undefined,
         endDate: dateRange.end || undefined,
         status: statusFilter !== "ALL" ? statusFilter.toLowerCase() : undefined,
         search: searchQuery.trim() || undefined,
       });
 
-      // Filter primarily for gateway payments (Paymob, card, or all online settlements)
-      const allDocs = res.docs || [];
+      // Filter strictly for Paymob gateway payments only (exclude cash/wallet)
+      const allDocs = (res.docs || []).filter(
+        (p) => (p.paymentMethod || "").toLowerCase() === "paymob"
+      );
       setPayments(allDocs);
     } catch (err) {
       console.error("Failed to load Paymob transactions:", err);
@@ -90,17 +67,24 @@ export default function PaymobTransactionsPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Reset Date Filters
+  const handleResetDates = () => {
+    setDateRange({ start: "", end: "" });
+  };
+
   // Filtered payments calculation
   const filteredPayments = useMemo(() => {
     return payments.filter((p) => {
-      // Payment method check (highlight paymob/card)
+      const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
-        searchQuery === "" ||
-        (p.transactionId && p.transactionId.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (p.referenceId && p.referenceId.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (p.paymobOrderId && String(p.paymobOrderId).includes(searchQuery)) ||
-        (typeof p.userId === "object" && p.userId?.userName?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (typeof p.bookingId === "object" && p.bookingId?.bookingCode?.toLowerCase().includes(searchQuery.toLowerCase()));
+        q === "" ||
+        (p.transactionId && p.transactionId.toLowerCase().includes(q)) ||
+        (p.referenceId && p.referenceId.toLowerCase().includes(q)) ||
+        (p.paymobOrderId && String(p.paymobOrderId).includes(q)) ||
+        (p.paymobTransactionId && String(p.paymobTransactionId).includes(q)) ||
+        (typeof p.userId === "object" && p.userId?.userName?.toLowerCase().includes(q)) ||
+        (typeof p.userId === "object" && p.userId?.phone && String(p.userId.phone).includes(q)) ||
+        (typeof p.bookingId === "object" && p.bookingId?.bookingCode?.toLowerCase().includes(q));
 
       const statusNorm = (p.status || "").toLowerCase();
       let matchesStatus = true;
@@ -109,21 +93,22 @@ export default function PaymobTransactionsPage() {
       } else if (statusFilter === "PARTIALLY_PAID") {
         matchesStatus = statusNorm === "partially_paid";
       } else if (statusFilter === "PENDING") {
-        matchesStatus = statusNorm === "pending";
+        matchesStatus = statusNorm === "pending" || statusNorm === "unpaid";
       } else if (statusFilter === "REFUNDED") {
         matchesStatus = statusNorm === "refunded" || (p.refundedAmount ?? 0) > 0;
+      } else if (statusFilter === "FAILED") {
+        matchesStatus = statusNorm === "failed";
       }
 
       return matchesSearch && matchesStatus;
     });
   }, [payments, searchQuery, statusFilter]);
 
-  // Metrics
+  // Metrics (Paymob Only)
   const metrics = useMemo(() => {
     const totalCount = payments.length;
     const paidList = payments.filter((p) => (p.status || "").toLowerCase() === "paid");
     const partiallyPaidList = payments.filter((p) => (p.status || "").toLowerCase() === "partially_paid");
-    const totalVolume = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
     const settledVolume = payments
       .filter((p) => ["paid", "partially_paid"].includes((p.status || "").toLowerCase()))
       .reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -133,7 +118,6 @@ export default function PaymobTransactionsPage() {
       totalCount,
       paidCount: paidList.length,
       partiallyPaidCount: partiallyPaidList.length,
-      totalVolume,
       settledVolume,
       totalRefunded,
     };
@@ -147,18 +131,16 @@ export default function PaymobTransactionsPage() {
     }
 
     const headers = [
-      "Transaction ID",
-      "Reference ID",
+      "Paymob Txn ID",
       "Paymob Order ID",
       "Customer Name",
       "Customer Phone",
       "Booking Code",
-      "Venue",
+      "Pitch / Venue",
       "Amount (EGP)",
       "Refunded (EGP)",
       "Status",
-      "Payment Method",
-      "Created At",
+      "Date & Time",
     ];
 
     const rows = filteredPayments.map((p) => {
@@ -172,34 +154,28 @@ export default function PaymobTransactionsPage() {
           : {};
 
       return [
-        `"${p.transactionId || p._id}"`,
-        `"${p.referenceId || "—"}"`,
+        `"${p.transactionId || p.paymobTransactionId || p._id}"`,
         `"${p.paymobOrderId || "—"}"`,
         `"${user.userName || user.name || "Customer"}"`,
         `"${user.phone || "—"}"`,
         `"${booking.bookingCode || "—"}"`,
-        `"${venue.venueName || venue.name || "Sports Venue"}"`,
+        `"${venue.venueName || venue.name || "Pitch"}"`,
         p.amount || 0,
         p.refundedAmount || 0,
         `"${p.status}"`,
-        `"${p.paymentMethod}"`,
         `"${new Date(p.createdAt || "").toLocaleString()}"`,
       ];
     });
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvContent =
+      "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `paymob-transactions-${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `paymob-online-transactions-${new Date().toISOString().split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  // Print Table View
-  const handlePrintTable = () => {
-    window.print();
   };
 
   // Status Badge Helper
@@ -211,6 +187,7 @@ export default function PaymobTransactionsPage() {
       case "partially_paid":
         return <Badge color="warning" size="sm">Deposit Paid</Badge>;
       case "pending":
+      case "unpaid":
         return <Badge color="warning" size="sm">Pending Gateway</Badge>;
       case "refunded":
         return <Badge color="error" size="sm">Refunded</Badge>;
@@ -224,8 +201,8 @@ export default function PaymobTransactionsPage() {
   return (
     <>
       <PageMeta
-        title="Paymob Transactions & Online Settlements | VenueOps Dashboard"
-        description="Read-only Paymob gateway transactions ledger with date range picker, printable receipts, and CSV export."
+        title="Paymob Online Transactions | ArenaHub"
+        description="Dedicated ledger for Paymob online credit/debit card payments and gateway settlements."
       />
       <PageBreadcrumb pageTitle="Paymob Transactions" />
 
@@ -234,16 +211,16 @@ export default function PaymobTransactionsPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white/90">
-                Paymob Transactions Ledger
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Paymob Online Transactions
               </h2>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800">
                 <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                Paymob Gateway (Read-Only)
+                Paymob Gateway
               </span>
             </div>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Audit digital gateway transactions, inspect Paymob order references, export financial data, or print customer receipts.
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Dedicated ledger strictly for online card payments processed via Paymob.
             </p>
           </div>
 
@@ -254,7 +231,7 @@ export default function PaymobTransactionsPage() {
             <Button onClick={handleExportCSV} size="sm" variant="outline">
               <DownloadIcon className="w-4 h-4 mr-1" /> Export CSV
             </Button>
-            <Button onClick={handlePrintTable} size="sm">
+            <Button onClick={() => window.print()} size="sm">
               🖨️ Print Sheet
             </Button>
           </div>
@@ -264,14 +241,14 @@ export default function PaymobTransactionsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Total Gateway Volume
               </span>
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
                 <DollarLineIcon className="h-5 w-5" />
               </div>
             </div>
-            <div className="mt-3 text-2xl font-bold text-gray-800 dark:text-white font-mono">
+            <div className="mt-3 text-2xl font-black text-gray-900 dark:text-white font-mono">
               {metrics.settledVolume.toLocaleString(undefined, { minimumFractionDigits: 2 })} EGP
             </div>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -281,94 +258,114 @@ export default function PaymobTransactionsPage() {
 
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                Full Settlements (100%)
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Full Settlements
               </span>
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-success-50 text-success-500 dark:bg-success-500/15 dark:text-success-400">
                 <CheckCircleIcon className="h-5 w-5" />
               </div>
             </div>
-            <div className="mt-3 text-2xl font-bold text-success-600 dark:text-success-400 font-mono">
-              {metrics.paidCount} Transactions
+            <div className="mt-3 text-2xl font-black text-success-600 dark:text-success-400 font-mono">
+              {metrics.paidCount}
             </div>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Paid in full via Paymob / Card
+              Paid in full via Paymob Card
             </p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                Deposits / Partial Paid
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Deposits Paid
               </span>
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-500 dark:bg-amber-500/15 dark:text-amber-400">
                 <AlertIcon className="h-5 w-5" />
               </div>
             </div>
-            <div className="mt-3 text-2xl font-bold text-amber-600 dark:text-amber-400 font-mono">
-              {metrics.partiallyPaidCount} Deposits
+            <div className="mt-3 text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
+              {metrics.partiallyPaidCount}
             </div>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Remainder due at venue reception
+              Partial deposit paid online
             </p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Total Refunded
               </span>
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-500 dark:bg-red-500/15 dark:text-red-400">
                 <DollarLineIcon className="h-5 w-5" />
               </div>
             </div>
-            <div className="mt-3 text-2xl font-bold text-red-600 dark:text-red-400 font-mono">
+            <div className="mt-3 text-2xl font-black text-red-600 dark:text-red-400 font-mono">
               {metrics.totalRefunded.toLocaleString(undefined, { minimumFractionDigits: 2 })} EGP
             </div>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Reversed transactions
+              Reversed online transactions
             </p>
           </div>
         </div>
 
-        {/* Filter and Date-Range Picker Bar */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
+        {/* Filters and Date Pickers Bar */}
+        <div className="relative z-40 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[220px]">
+            <div className="relative flex-1 min-w-[200px]">
               <input
                 type="text"
-                placeholder="Search by Transaction ID, Reference, Booking Code, or Customer..."
+                placeholder="Search Txn ID, Order ID, Booking Code, Customer..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-800 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                className="w-full rounded-xl border border-gray-300 bg-transparent px-3.5 py-2 text-xs text-gray-800 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
               />
             </div>
 
-            {/* Flatpickr Date-Range Picker */}
-            <div className="relative min-w-[240px]">
-              <input
-                id="paymob-date-range"
-                type="text"
-                placeholder="Select Date Range..."
-                className="w-full rounded-xl border border-gray-300 bg-transparent pl-4 pr-10 py-2 text-sm text-gray-800 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              />
-              <CalenderIcon className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+            {/* Date Pickers (From / To) */}
+            <div className="flex items-center gap-2">
+              <div className="w-36">
+                <ModernDatePicker
+                  value={dateRange.start}
+                  onChange={(val) => setDateRange((prev) => ({ ...prev, start: val }))}
+                  placeholder="From Date"
+                  variant="compact"
+                />
+              </div>
+              <span className="text-xs text-gray-400">to</span>
+              <div className="w-36">
+                <ModernDatePicker
+                  value={dateRange.end}
+                  onChange={(val) => setDateRange((prev) => ({ ...prev, end: val }))}
+                  placeholder="To Date"
+                  variant="compact"
+                  align="right"
+                />
+              </div>
+              {(dateRange.start || dateRange.end) && (
+                <button
+                  onClick={handleResetDates}
+                  className="px-2.5 py-1.5 text-xs text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition cursor-pointer"
+                  title="Clear Date Filters"
+                >
+                  ✕ Clear
+                </button>
+              )}
             </div>
 
             {/* Status Tabs Selector */}
-            <div className="flex flex-wrap items-center gap-1.5 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+            <div className="flex flex-wrap items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
               {["ALL", "PAID", "PARTIALLY_PAID", "PENDING", "REFUNDED"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setStatusFilter(tab)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                     statusFilter === tab
                       ? "bg-white text-brand-600 shadow-xs dark:bg-gray-700 dark:text-white"
                       : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                   }`}
                 >
-                  {tab.replace("_", " ")}
+                  {tab === "ALL" ? "All" : tab === "PARTIALLY_PAID" ? "Deposits" : tab.replace("_", " ")}
                 </button>
               ))}
             </div>
@@ -378,23 +375,25 @@ export default function PaymobTransactionsPage() {
         {/* Transactions Table */}
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700/80 dark:bg-gray-800/90 backdrop-blur-md shadow-sm">
           <div className="max-w-full overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200 dark:bg-gray-800/50 dark:border-gray-700/80 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-gray-50 border-b border-gray-200 dark:bg-gray-800/50 dark:border-gray-700/80 font-bold uppercase text-gray-500 dark:text-gray-400">
                 <tr>
-                  <th className="px-6 py-4">Transaction / Reference</th>
-                  <th className="px-6 py-4">Customer</th>
-                  <th className="px-6 py-4">Booking / Venue</th>
-                  <th className="px-6 py-4">Amount Paid</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Date & Time</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-5 py-3.5">Paymob Txn ID / Order</th>
+                  <th className="px-5 py-3.5">Customer</th>
+                  <th className="px-5 py-3.5">Pitch / Booking</th>
+                  <th className="px-5 py-3.5">Amount</th>
+                  <th className="px-5 py-3.5">Status</th>
+                  <th className="px-5 py-3.5">Date & Time</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                 {filteredPayments.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
-                      {loading ? "Fetching Paymob transactions..." : "No payment records found matching your filters."}
+                    <td colSpan={7} className="px-5 py-12 text-center text-gray-400">
+                      {loading
+                        ? "Loading Paymob gateway transactions..."
+                        : "No Paymob online records found matching your filters."}
                     </td>
                   </tr>
                 ) : (
@@ -408,46 +407,45 @@ export default function PaymobTransactionsPage() {
                         ? p.venueId
                         : {};
                     const dateFormatted = p.createdAt ? new Date(p.createdAt).toLocaleString() : "—";
-                    const txDisplay = p.transactionId || p.referenceId || p._id;
+                    const txDisplay = String(p.transactionId || p.paymobTransactionId || p._id || "");
+                    const safeId = String(p._id || p.id || txDisplay);
 
                     return (
-                      <tr key={p._id || p.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40">
-                        <td className="px-6 py-4">
+                      <tr key={safeId} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40">
+                        {/* Txn ID / Order ID */}
+                        <td className="px-5 py-3.5">
                           <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-gray-900 dark:text-white">
                             <span>{txDisplay}</span>
                             <button
-                              onClick={() => handleCopy(txDisplay, p._id)}
-                              className="text-gray-400 hover:text-brand-500 p-0.5"
+                              onClick={() => handleCopy(txDisplay, safeId)}
+                              className="text-gray-400 hover:text-brand-500 p-0.5 cursor-pointer"
                               title="Copy ID"
                             >
                               <CopyIcon className="w-3.5 h-3.5" />
                             </button>
-                            {copiedId === p._id && (
+                            {copiedId === safeId && (
                               <span className="text-[10px] text-emerald-500 font-sans">Copied!</span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[11px] text-gray-400 uppercase">
-                              Method: {p.paymentMethod}
-                            </span>
-                            {p.paymobOrderId && (
-                              <span className="text-[11px] font-mono text-blue-500">
-                                Order #{p.paymobOrderId}
-                              </span>
-                            )}
-                          </div>
+                          {p.paymobOrderId && (
+                            <div className="text-[11px] font-mono text-blue-500 mt-0.5">
+                              Order #{p.paymobOrderId}
+                            </div>
+                          )}
                         </td>
 
-                        <td className="px-6 py-4">
+                        {/* Customer */}
+                        <td className="px-5 py-3.5">
                           <p className="font-bold text-gray-900 dark:text-white text-xs">
                             {user.userName || user.name || "Customer"}
                           </p>
                           <p className="text-[11px] text-gray-400 font-mono">{user.phone || user.email || "—"}</p>
                         </td>
 
-                        <td className="px-6 py-4">
+                        {/* Pitch / Booking Code */}
+                        <td className="px-5 py-3.5">
                           <p className="font-bold text-gray-800 dark:text-gray-200 text-xs">
-                            {venue.venueName || venue.name || "Sports Venue"}
+                            {venue.venueName || venue.name || "Sports Pitch"}
                           </p>
                           {booking.bookingCode && (
                             <span className="inline-block px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-[10px] font-mono text-brand-600 font-bold mt-0.5">
@@ -456,33 +454,37 @@ export default function PaymobTransactionsPage() {
                           )}
                         </td>
 
-                        <td className="px-6 py-4">
+                        {/* Amount */}
+                        <td className="px-5 py-3.5">
                           <span className="font-black text-sm font-mono text-emerald-600 dark:text-emerald-400">
                             {Number(p.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} EGP
                           </span>
                           {p.refundedAmount && p.refundedAmount > 0 ? (
-                            <p className="text-[10px] text-red-500 font-mono">
+                            <p className="text-[10px] text-red-500 font-mono mt-0.5">
                               Refunded: -{p.refundedAmount} EGP
                             </p>
                           ) : null}
                         </td>
 
-                        <td className="px-6 py-4">
+                        {/* Status */}
+                        <td className="px-5 py-3.5">
                           {getStatusBadge(p.status)}
                         </td>
 
-                        <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400 font-mono">
+                        {/* Date & Time */}
+                        <td className="px-5 py-3.5 text-xs text-gray-500 dark:text-gray-400 font-mono">
                           {dateFormatted}
                         </td>
 
-                        <td className="px-6 py-4 text-right">
+                        {/* Actions */}
+                        <td className="px-5 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => {
                                 setSelectedTx(p);
                                 setIsDetailsModalOpen(true);
                               }}
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
                               title="View Details"
                             >
                               <EyeIcon className="w-4 h-4" />
@@ -492,7 +494,7 @@ export default function PaymobTransactionsPage() {
                                 setSelectedTx(p);
                                 setIsReceiptModalOpen(true);
                               }}
-                              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-950/40 dark:text-brand-400 transition"
+                              className="px-2 py-1 rounded-lg text-xs font-bold bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-950/40 dark:text-brand-400 transition cursor-pointer"
                               title="Print Receipt"
                             >
                               Receipt
@@ -520,15 +522,15 @@ export default function PaymobTransactionsPage() {
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700/80">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  Transaction Audit Details
+                  Paymob Transaction Details
                 </h3>
                 <p className="text-xs text-gray-400 font-mono">
-                  ID: {selectedTx.transactionId || selectedTx._id}
+                  Txn ID: {selectedTx.transactionId || selectedTx.paymobTransactionId || selectedTx._id}
                 </p>
               </div>
               <button
                 onClick={() => setIsDetailsModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600"
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 cursor-pointer"
               >
                 <CloseIcon className="w-5 h-5" />
               </button>
@@ -547,9 +549,6 @@ export default function PaymobTransactionsPage() {
                 </div>
                 <div className="text-right">
                   {getStatusBadge(selectedTx.status)}
-                  <p className="text-[11px] text-gray-500 mt-1 uppercase font-bold">
-                    Method: {selectedTx.paymentMethod}
-                  </p>
                 </div>
               </div>
 
@@ -568,7 +567,7 @@ export default function PaymobTransactionsPage() {
                 </div>
 
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
-                  <span className="text-gray-400 font-medium">Booking / Venue</span>
+                  <span className="text-gray-400 font-medium">Pitch / Booking</span>
                   <p className="font-bold text-gray-900 dark:text-white mt-0.5">
                     {typeof selectedTx.bookingId === "object" &&
                     selectedTx.bookingId &&
@@ -577,7 +576,7 @@ export default function PaymobTransactionsPage() {
                       ? selectedTx.bookingId.venueId.venueName || selectedTx.bookingId.venueId.name
                       : typeof selectedTx.venueId === "object" && selectedTx.venueId
                       ? selectedTx.venueId.venueName || selectedTx.venueId.name
-                      : "Venue"}
+                      : "Pitch"}
                   </p>
                   <p className="text-brand-600 font-mono font-bold text-[11px]">
                     Code: {typeof selectedTx.bookingId === "object" && selectedTx.bookingId ? selectedTx.bookingId?.bookingCode : "—"}
@@ -612,7 +611,7 @@ export default function PaymobTransactionsPage() {
               <button
                 type="button"
                 onClick={() => setIsDetailsModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 cursor-pointer"
               >
                 Close
               </button>
@@ -638,16 +637,14 @@ export default function PaymobTransactionsPage() {
           className="max-w-md p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-2xl"
         >
           <div id="printable-receipt" className="text-gray-900 dark:text-white">
-            {/* Receipt Header */}
             <div className="text-center pb-4 border-b border-dashed border-gray-300 dark:border-gray-700">
               <h2 className="text-xl font-black tracking-wider uppercase">ARENAHUB</h2>
-              <p className="text-xs text-gray-500">Official Payment Receipt & Voucher</p>
+              <p className="text-xs text-gray-500">Official Paymob Online Payment Voucher</p>
               <p className="text-[10px] text-gray-400 font-mono mt-1">
                 Receipt #{selectedTx.transactionId || selectedTx._id}
               </p>
             </div>
 
-            {/* Receipt Body */}
             <div className="py-4 space-y-2.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-500">Date:</span>
@@ -666,7 +663,7 @@ export default function PaymobTransactionsPage() {
               </div>
 
               <div className="flex justify-between">
-                <span className="text-gray-500">Venue:</span>
+                <span className="text-gray-500">Pitch / Venue:</span>
                 <span className="font-bold">
                   {typeof selectedTx.bookingId === "object" &&
                   selectedTx.bookingId &&
@@ -675,7 +672,7 @@ export default function PaymobTransactionsPage() {
                     ? selectedTx.bookingId.venueId.venueName || selectedTx.bookingId.venueId.name
                     : typeof selectedTx.venueId === "object" && selectedTx.venueId
                     ? selectedTx.venueId.venueName || selectedTx.venueId.name
-                    : "Venue"}
+                    : "Pitch"}
                 </span>
               </div>
 
@@ -688,7 +685,7 @@ export default function PaymobTransactionsPage() {
 
               <div className="flex justify-between">
                 <span className="text-gray-500">Payment Gateway:</span>
-                <span className="font-bold uppercase">Paymob / Card</span>
+                <span className="font-bold uppercase text-blue-600">Paymob Online Card</span>
               </div>
 
               <div className="pt-3 border-t border-dashed border-gray-300 dark:border-gray-700 flex justify-between items-center text-sm font-black">
@@ -699,18 +696,16 @@ export default function PaymobTransactionsPage() {
               </div>
             </div>
 
-            {/* Receipt Footer */}
             <div className="text-center pt-4 border-t border-dashed border-gray-300 dark:border-gray-700 text-[11px] text-gray-400">
               <p className="font-bold text-gray-600 dark:text-gray-300">Thank you for booking with ArenaHub!</p>
-              <p className="mt-0.5">Please show this receipt or booking code at reception.</p>
+              <p className="mt-0.5">Paymob electronic receipt for pitch reservation.</p>
             </div>
 
-            {/* Print Trigger Button */}
             <div className="mt-6 flex justify-end gap-2 print:hidden">
               <button
                 type="button"
                 onClick={() => setIsReceiptModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 cursor-pointer"
               >
                 Close
               </button>
